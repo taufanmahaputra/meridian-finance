@@ -265,6 +265,14 @@ const en: Dict = {
   'settings.data.clearing': 'Clearing…',
   'settings.data.clearEverything': 'Clear Everything',
 
+  'home.prompt': 'Where are you headed today?',
+  'home.atur.stat': 'Net Savings This Month',
+  'home.atur.cta': 'Open OlahAtur',
+  'home.saham.stat': 'IHSG Today',
+  'home.saham.cta': 'Open OlahSaham',
+  'home.noData': 'No data yet — add your first month',
+  'home.signalsBuy': 'buy signals active',
+
   'addMonth.title': 'Add Month Data',
   'addMonth.monthLabel': 'Month Label',
   'addMonth.income': 'Income',
@@ -529,6 +537,14 @@ const id: Dict = {
   'settings.data.confirmType': 'Ketik DELETE untuk konfirmasi',
   'settings.data.clearing': 'Menghapus…',
   'settings.data.clearEverything': 'Hapus Semua',
+
+  'home.prompt': 'Mau ke mana hari ini?',
+  'home.atur.stat': 'Tabungan Bersih Bulan Ini',
+  'home.atur.cta': 'Buka OlahAtur',
+  'home.saham.stat': 'IHSG Hari Ini',
+  'home.saham.cta': 'Buka OlahSaham',
+  'home.noData': 'Belum ada data — tambahkan bulan pertama',
+  'home.signalsBuy': 'sinyal beli aktif',
 
   'addMonth.title': 'Tambah Data Bulan',
   'addMonth.monthLabel': 'Label Bulan',

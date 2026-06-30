@@ -106,10 +106,10 @@ export function Sidebar() {
         )}
       >
         <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <Link href="/home" onClick={close} className="flex items-center gap-2.5 group">
             <div className="brand-mark w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0">O</div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight">OlahDana</h1>
-          </div>
+            <h1 className="text-lg font-bold text-gray-900 tracking-tight group-hover:text-indigo-600 transition-colors">OlahDana</h1>
+          </Link>
           <button onClick={close} className="md:hidden text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>

@@ -17,19 +17,19 @@
   --color-gray-900: #221d18;
   --color-gray-950: #14110d;
 
-  /* Terracotta/rust brand accent, replacing the default indigo everywhere
-     the app uses indigo-* utilities (buttons, links, active nav, icon chips). */
-  --color-indigo-50: #fcf1ea;
-  --color-indigo-100: #f7dfcd;
-  --color-indigo-200: #edbe98;
-  --color-indigo-300: #e09a64;
-  --color-indigo-400: #cf7840;
-  --color-indigo-500: #b85e2c;
-  --color-indigo-600: #a14a22;
-  --color-indigo-700: #813a1c;
-  --color-indigo-800: #642c17;
-  --color-indigo-900: #4a2110;
-  --color-indigo-950: #2e1409;
+  /* Deep cobalt brand accent, replacing the default indigo everywhere the
+     app uses indigo-* utilities (buttons, links, active nav, icon chips). */
+  --color-indigo-50: #eef3fb;
+  --color-indigo-100: #d7e3f5;
+  --color-indigo-200: #b0c7ec;
+  --color-indigo-300: #7fa3de;
+  --color-indigo-400: #4d7bcb;
+  --color-indigo-500: #2e5bae;
+  --color-indigo-600: #1f4690;
+  --color-indigo-700: #1a3873;
+  --color-indigo-800: #16305f;
+  --color-indigo-900: #11264a;
+  --color-indigo-950: #0a1830;
 }
 
 body {
@@ -42,9 +42,9 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--color-gray-300); border-radius: 3px; }
 
 .card-shadow {
-  box-shadow: 0 1px 2px rgba(161, 74, 34, 0.04), 0 2px 8px rgba(34, 29, 24, 0.05);
+  box-shadow: 0 1px 2px rgba(31, 70, 144, 0.05), 0 2px 8px rgba(34, 29, 24, 0.05);
 }
 
 .brand-mark {
-  background: linear-gradient(135deg, #a14a22 0%, #d97706 100%);
+  background: linear-gradient(135deg, #1f4690 0%, #2e8b8b 100%);
 }

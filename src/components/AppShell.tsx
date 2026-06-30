@@ -9,6 +9,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { loading, t } = useFinance();
   const isLogin = pathname === '/login' || pathname.startsWith('/auth/');
+  const isHome = pathname === '/home';
 
   if (isLogin) {
     return <>{children}</>;
@@ -23,6 +24,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     );
+  }
+
+  if (isHome) {
+    return <>{children}</>;
   }
 
   return (
