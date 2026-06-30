@@ -14,7 +14,7 @@ interface KpiCardProps {
 
 export function KpiCard({ icon, iconBg, label, value, trendText, trendClassName, trendSuffix = ' vs prev' }: KpiCardProps) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white border border-gray-200 rounded-xl p-5 card-shadow hover:shadow-md transition-shadow">
       <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center text-base mb-3', iconBg)}>
         {icon}
       </div>

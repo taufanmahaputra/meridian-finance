@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden', className)}>
+    <div className={cn('bg-white border border-gray-200 rounded-xl card-shadow overflow-hidden', className)}>
       {children}
     </div>
   );

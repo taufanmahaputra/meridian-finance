@@ -51,7 +51,7 @@ export default function InsightsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           {insights.map((insight, i) => (
-            <div key={i} className={`bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow border-l-[3px] ${priorityBorder[insight.priority]}`}>
+            <div key={i} className={`bg-white border border-gray-200 rounded-xl p-5 card-shadow hover:shadow-md transition-shadow border-l-[3px] ${priorityBorder[insight.priority]}`}>
               <div className="flex items-center gap-2.5 mb-2">
                 <Badge variant={priorityVariant[insight.priority]}>{insight.priority}</Badge>
                 <span className="text-sm font-semibold">{insight.title}</span>
