@@ -22,9 +22,9 @@ const priorityBorder = {
 };
 
 export default function InsightsPage() {
-  const { months } = useFinance();
-  const insights = generateInsights(months);
-  const actions = generateActions(months);
+  const { months, catBudgets } = useFinance();
+  const insights = generateInsights(months, catBudgets);
+  const actions = generateActions(months, catBudgets);
 
   if (months.length === 0) {
     return (

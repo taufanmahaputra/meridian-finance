@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutGrid, DollarSign, CheckCircle, Activity,
-  Lightbulb, TrendingUp, Upload, X,
+  Lightbulb, TrendingUp, Upload, X, CalendarDays, Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
@@ -14,6 +14,7 @@ const navSections = [
     title: 'Overview',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
+      { href: '/monthly', label: 'Monthly Detail', icon: CalendarDays },
       { href: '/transactions', label: 'Transactions', icon: DollarSign },
       { href: '/budget', label: 'Budget & Audit', icon: CheckCircle },
     ],
@@ -30,6 +31,7 @@ const navSections = [
     title: 'Data',
     items: [
       { href: '/upload', label: 'Upload Statement', icon: Upload },
+      { href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
 ];

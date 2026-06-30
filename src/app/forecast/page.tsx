@@ -7,10 +7,9 @@ import { Badge } from '@/components/ui/Badge';
 import { ForecastChart } from '@/components/charts/ForecastChart';
 import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct, generateForecast } from '@/lib/calculations';
-import { INCOME, MONTHLY_BUDGET } from '@/lib/constants';
 
 export default function ForecastPage() {
-  const { months } = useFinance();
+  const { months, income, monthlyBudget } = useFinance();
 
   if (months.length === 0) {
     return (
@@ -26,22 +25,23 @@ export default function ForecastPage() {
     );
   }
 
+  const effectiveIncome = income || months[months.length - 1].income;
   const { projected, avgGrowth = 0, avgExpense = 0 } = generateForecast(months);
-  const projSavings = projected.map((e) => INCOME - e);
+  const projSavings = projected.map((e) => effectiveIncome - e);
   const avgSavingsRate = months.reduce((s, m) => s + m.savingsRate, 0) / months.length;
 
   const metrics = [
     { label: 'Avg Monthly Expense (Projected)', value: fmt(projected.reduce((a, b) => a + b, 0) / 6), color: '' },
-    { label: 'Projected Dec 2026 Expense', value: fmt(projected[5] || 0), color: (projected[5] || 0) > MONTHLY_BUDGET ? 'text-red-500' : 'text-emerald-600' },
+    { label: 'Projected Final Month Expense', value: fmt(projected[5] || 0), color: (projected[5] || 0) > monthlyBudget ? 'text-red-500' : 'text-emerald-600' },
     { label: 'Projected 6-Month Savings', value: fmt(projSavings.reduce((a, b) => a + b, 0)), color: 'text-emerald-600' },
     { label: 'Current Savings Trend', value: fmtPct(avgSavingsRate), color: avgSavingsRate >= 40 ? 'text-emerald-600' : 'text-amber-600' },
     { label: 'Monthly Growth Rate', value: `${avgGrowth >= 0 ? '+' : ''}${fmt(avgGrowth)}/mo`, color: avgGrowth > 0 ? 'text-red-500' : 'text-emerald-600' },
   ];
 
   const scenarios = [
-    { title: 'Conservative', desc: 'Reduce discretionary by 20%', savings: fmt((INCOME - avgExpense * 0.8) * 6), color: 'text-emerald-600', border: 'border-emerald-200' },
+    { title: 'Conservative', desc: 'Reduce discretionary by 20%', savings: fmt((effectiveIncome - avgExpense * 0.8) * 6), color: 'text-emerald-600', border: 'border-emerald-200' },
     { title: 'Status Quo', desc: 'Continue current trend', savings: fmt(projSavings.reduce((a, b) => a + b, 0)), color: 'text-amber-600', border: 'border-amber-200' },
-    { title: 'Aggressive Growth', desc: 'Expenses grow 10% more', savings: fmt((INCOME - avgExpense * 1.1) * 6), color: 'text-red-500', border: 'border-red-200' },
+    { title: 'Aggressive Growth', desc: 'Expenses grow 10% more', savings: fmt((effectiveIncome - avgExpense * 1.1) * 6), color: 'text-red-500', border: 'border-red-200' },
   ];
 
   return (
@@ -51,7 +51,7 @@ export default function ForecastPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-6">
           <Card>
             <CardHeader action={<Badge variant="info">Linear Projection</Badge>}>6-Month Expense Forecast</CardHeader>
-            <CardBody><ForecastChart months={months} /></CardBody>
+            <CardBody><ForecastChart months={months} monthlyBudget={monthlyBudget} /></CardBody>
           </Card>
           <Card>
             <CardHeader>Projected Metrics</CardHeader>

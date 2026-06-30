@@ -1,13 +1,16 @@
 import type { MonthData, Insight, ActionItem } from '@/types/finance';
-import { MONTHLY_BUDGET, CAT_BUDGETS, INCOME } from './constants';
 
-export function computeDerived(m: Partial<MonthData> & { income: number; expenses: number; cats: Record<string, number>; partial: boolean; label: string }): MonthData {
+export function computeDerived(
+  m: Partial<MonthData> & { income: number; expenses: number; cats: Record<string, number>; partial: boolean; label: string },
+  catBudgets: Record<string, number> = {}
+): MonthData {
+  const monthlyBudget = Object.values(catBudgets).reduce((a, b) => a + b, 0);
   const savings = m.income - m.expenses;
   const savingsRate = m.income > 0 ? (savings / m.income) * 100 : 0;
-  const budgetUtil = MONTHLY_BUDGET > 0 ? (m.expenses / MONTHLY_BUDGET) * 100 : 0;
+  const budgetUtil = monthlyBudget > 0 ? (m.expenses / monthlyBudget) * 100 : 0;
   const avgDaily = m.expenses / (m.partial ? 24 : 30);
   const overBudgetCats = Object.entries(m.cats).filter(
-    ([c, v]) => (CAT_BUDGETS[c] ?? 0) > 0 && v > (CAT_BUDGETS[c] ?? 0)
+    ([c, v]) => (catBudgets[c] ?? 0) > 0 && v > (catBudgets[c] ?? 0)
   ).length;
 
   return {
@@ -75,7 +78,7 @@ export function fmtPct(n: number): string {
   return `${n.toFixed(1)}%`;
 }
 
-export function generateInsights(months: MonthData[]): Insight[] {
+export function generateInsights(months: MonthData[], catBudgets: Record<string, number> = {}): Insight[] {
   if (months.length === 0) return [];
   const m = months[months.length - 1];
   const insights: Insight[] = [];
@@ -92,7 +95,7 @@ export function generateInsights(months: MonthData[]): Insight[] {
   }
 
   const travelSpend = m.cats['Travel'] || 0;
-  const travelBudget = CAT_BUDGETS['Travel'] || 0;
+  const travelBudget = catBudgets['Travel'] || 0;
   if (travelSpend > 0 && travelBudget === 0) {
     const avgTravel = months.reduce((s, x) => s + (x.cats['Travel'] || 0), 0) / months.length;
     insights.push({
@@ -112,7 +115,7 @@ export function generateInsights(months: MonthData[]): Insight[] {
   }
 
   Object.entries(m.cats).forEach(([cat, spent]) => {
-    const budget = CAT_BUDGETS[cat] || 0;
+    const budget = catBudgets[cat] || 0;
     if (budget > 0 && spent > budget * 3) {
       insights.push({
         priority: 'medium',
@@ -123,7 +126,7 @@ export function generateInsights(months: MonthData[]): Insight[] {
   });
 
   const food = m.cats['Food & Groceries'] || 0;
-  const foodBudget = CAT_BUDGETS['Food & Groceries'] || 0;
+  const foodBudget = catBudgets['Food & Groceries'] || 0;
   if (food < foodBudget * 0.7) {
     insights.push({
       priority: 'low',
@@ -143,13 +146,13 @@ export function generateInsights(months: MonthData[]): Insight[] {
   return insights;
 }
 
-export function generateActions(months: MonthData[]): ActionItem[] {
+export function generateActions(months: MonthData[], catBudgets: Record<string, number> = {}): ActionItem[] {
   if (months.length === 0) return [];
   const actions: ActionItem[] = [];
   const m = months[months.length - 1];
 
   const avgTravel = months.reduce((s, x) => s + (x.cats['Travel'] || 0), 0) / months.length;
-  if (avgTravel > 100 && (CAT_BUDGETS['Travel'] || 0) === 0) {
+  if (avgTravel > 100 && (catBudgets['Travel'] || 0) === 0) {
     actions.push({ title: `Set Travel budget at $${Math.round(avgTravel / 100) * 100}/mo`, detail: `You've averaged ${fmt(avgTravel)}/mo on travel. Allocating a budget eliminates most over-budget flags.` });
   }
 
@@ -159,7 +162,7 @@ export function generateActions(months: MonthData[]): ActionItem[] {
   }
 
   Object.entries(m.cats).forEach(([cat, spent]) => {
-    const budget = CAT_BUDGETS[cat] || 0;
+    const budget = catBudgets[cat] || 0;
     if (budget > 0 && spent > budget * 1.5) {
       actions.push({ title: `Adjust ${cat} budget to ${fmt(Math.ceil(spent / 50) * 50)}`, detail: `Current budget of ${fmt(budget)} is consistently exceeded (${fmt(spent)} this month). Update to reflect actual spending.` });
     }

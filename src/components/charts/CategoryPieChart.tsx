@@ -2,9 +2,8 @@
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { MonthData } from '@/types/finance';
-import { CAT_COLORS } from '@/lib/constants';
 
-export function CategoryPieChart({ month }: { month: MonthData }) {
+export function CategoryPieChart({ month, catColors }: { month: MonthData; catColors: Record<string, string> }) {
   const data = Object.entries(month.cats)
     .filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1])
@@ -15,7 +14,7 @@ export function CategoryPieChart({ month }: { month: MonthData }) {
       <PieChart>
         <Pie data={data} cx="50%" cy="50%" innerRadius={65} outerRadius={100} dataKey="value" paddingAngle={2} stroke="#fff" strokeWidth={2}>
           {data.map((entry) => (
-            <Cell key={entry.name} fill={CAT_COLORS[entry.name] || '#6b7280'} />
+            <Cell key={entry.name} fill={catColors[entry.name] || '#6b7280'} />
           ))}
         </Pie>
         <Tooltip formatter={(value) => [`$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, undefined]} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />

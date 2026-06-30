@@ -30,6 +30,13 @@ export interface CategoryBudget {
   color: string;
 }
 
+export interface Category {
+  id?: string;
+  name: string;
+  budget: number;
+  color: string;
+}
+
 export interface Insight {
   priority: 'high' | 'medium' | 'low' | 'info';
   title: string;

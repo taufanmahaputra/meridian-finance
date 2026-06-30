@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { AddMonthModal } from '@/components/AddMonthModal';
@@ -15,7 +17,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct, getTrendData, getHealthScore } from '@/lib/calculations';
 
 export default function DashboardPage() {
-  const { months, addMonth } = useFinance();
+  const { months, addMonth, categories, catBudgets, catColors, monthlyBudget, income } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [pieIdx, setPieIdx] = useState(months.length - 1);
 
@@ -30,7 +32,7 @@ export default function DashboardPage() {
             onAddMonth={() => setModalOpen(true)}
           />
         </div>
-        <AddMonthModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addMonth} />
+        <AddMonthModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addMonth} categories={categories} catBudgets={catBudgets} defaultIncome={income} />
       </>
     );
   }
@@ -66,7 +68,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-6">
           <Card>
             <CardHeader>Expense Trend vs Budget</CardHeader>
-            <CardBody><ExpenseTrendChart months={months} /></CardBody>
+            <CardBody><ExpenseTrendChart months={months} monthlyBudget={monthlyBudget} /></CardBody>
           </Card>
           <Card>
             <CardHeader>Financial Health Score</CardHeader>
@@ -95,7 +97,7 @@ export default function DashboardPage() {
                 {months.map((m, i) => <option key={i} value={i}>{m.label}</option>)}
               </select>
             }>Spending by Category</CardHeader>
-            <CardBody><CategoryPieChart month={months[pieIdx] || months[months.length - 1]} /></CardBody>
+            <CardBody><CategoryPieChart month={months[pieIdx] || months[months.length - 1]} catColors={catColors} /></CardBody>
           </Card>
         </div>
 
@@ -106,7 +108,7 @@ export default function DashboardPage() {
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="bg-gray-50">
-                    {['Month', 'Income', 'Expenses', 'Net Savings', 'Savings Rate', 'Budget Util.', 'Over-Budget', 'Avg Daily'].map((h) => (
+                    {['Month', 'Income', 'Expenses', 'Net Savings', 'Savings Rate', 'Budget Util.', 'Over-Budget', 'Avg Daily', ''].map((h) => (
                       <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
                     ))}
                   </tr>
@@ -122,6 +124,11 @@ export default function DashboardPage() {
                       <td className="px-4 py-3"><Badge variant={mo.budgetUtil <= 100 ? 'success' : mo.budgetUtil <= 120 ? 'warning' : 'danger'}>{fmtPct(mo.budgetUtil)}</Badge></td>
                       <td className={`px-4 py-3 font-semibold ${mo.overBudgetCats > 3 ? 'text-red-500' : mo.overBudgetCats > 1 ? 'text-amber-600' : 'text-emerald-600'}`}>{mo.overBudgetCats}</td>
                       <td className="px-4 py-3">{fmt(mo.avgDaily)}</td>
+                      <td className="px-4 py-3">
+                        <Link href={`/monthly?m=${encodeURIComponent(mo.label)}`} className="inline-flex items-center gap-0.5 text-indigo-600 font-medium hover:text-indigo-700">
+                          Details <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -130,7 +137,7 @@ export default function DashboardPage() {
           </CardBody>
         </Card>
       </div>
-      <AddMonthModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addMonth} />
+      <AddMonthModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addMonth} categories={categories} catBudgets={catBudgets} defaultIncome={income} />
     </>
   );
 }

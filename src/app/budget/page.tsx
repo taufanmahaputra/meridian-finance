@@ -8,10 +8,9 @@ import { BudgetUtilChart } from '@/components/charts/BudgetUtilChart';
 import { CategoryStackChart } from '@/components/charts/CategoryStackChart';
 import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct } from '@/lib/calculations';
-import { CAT_BUDGETS, CAT_COLORS } from '@/lib/constants';
 
 export default function BudgetPage() {
-  const { months } = useFinance();
+  const { months, categories, catBudgets, catColors } = useFinance();
 
   if (months.length === 0) {
     return (
@@ -34,7 +33,7 @@ export default function BudgetPage() {
   Object.entries(m.cats).forEach(([cat, spent]) => {
     const prev = p?.cats?.[cat] || 0;
     if (prev > 0 && spent > prev * 2) anomalies.push({ msg: `${cat} spiked ${((spent / prev - 1) * 100).toFixed(0)}% (${fmt(prev)} → ${fmt(spent)})`, severity: 'danger' });
-    const budget = CAT_BUDGETS[cat] || 0;
+    const budget = catBudgets[cat] || 0;
     if (budget > 0 && spent > budget * 1.5) anomalies.push({ msg: `${cat} is ${fmtPct((spent / budget) * 100)} of budget (${fmt(spent)} vs ${fmt(budget)})`, severity: 'warning' });
   });
 
@@ -49,7 +48,7 @@ export default function BudgetPage() {
           </Card>
           <Card>
             <CardHeader>Category Stacked Trend</CardHeader>
-            <CardBody><CategoryStackChart months={months} /></CardBody>
+            <CardBody><CategoryStackChart months={months} categories={categories} /></CardBody>
           </Card>
         </div>
 
@@ -68,7 +67,7 @@ export default function BudgetPage() {
                   </thead>
                   <tbody>
                     {Object.entries(m.cats).sort((a, b) => b[1] - a[1]).map(([cat, spent]) => {
-                      const budget = CAT_BUDGETS[cat] || 0;
+                      const budget = catBudgets[cat] || 0;
                       const variance = budget - spent;
                       const pctUsed = budget > 0 ? (spent / budget) * 100 : null;
                       const prevSpent = p?.cats?.[cat] || 0;
@@ -80,7 +79,7 @@ export default function BudgetPage() {
                       return (
                         <tr key={cat} className="border-b border-gray-100 hover:bg-gray-50/50">
                           <td className="px-4 py-2.5">
-                            <span className="inline-block w-2 h-2 rounded-sm mr-2" style={{ backgroundColor: CAT_COLORS[cat] }}></span>
+                            <span className="inline-block w-2 h-2 rounded-sm mr-2" style={{ backgroundColor: catColors[cat] || '#6b7280' }}></span>
                             <strong>{cat}</strong>
                           </td>
                           <td className="px-4 py-2.5">{budget ? fmt(budget) : '—'}</td>

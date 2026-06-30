@@ -2,24 +2,36 @@
 
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { CATEGORIES, INCOME } from '@/lib/constants';
 import { computeDerived } from '@/lib/calculations';
-import type { MonthData } from '@/types/finance';
+import type { MonthData, Category } from '@/types/finance';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   onAdd: (month: MonthData) => void;
+  categories: Category[];
+  catBudgets: Record<string, number>;
+  defaultIncome: number;
 }
 
-export function AddMonthModal({ open, onClose, onAdd }: Props) {
+export function AddMonthModal({ open, onClose, onAdd, categories, catBudgets, defaultIncome }: Props) {
   const [label, setLabel] = useState('');
-  const [income, setIncome] = useState(INCOME.toString());
+  const [income, setIncome] = useState(defaultIncome.toString());
   const [expenses, setExpenses] = useState('');
   const [partial, setPartial] = useState(false);
   const [cats, setCats] = useState<Record<string, string>>(
-    Object.fromEntries(CATEGORIES.map((c) => [c.name, '']))
+    Object.fromEntries(categories.map((c) => [c.name, '']))
   );
+  const [wasOpen, setWasOpen] = useState(open);
+
+  // Reset the form fields each time the modal transitions from closed to open.
+  if (open && !wasOpen) {
+    setWasOpen(true);
+    setIncome(defaultIncome.toString());
+    setCats(Object.fromEntries(categories.map((c) => [c.name, ''])));
+  } else if (!open && wasOpen) {
+    setWasOpen(false);
+  }
 
   if (!open) return null;
 
@@ -34,14 +46,14 @@ export function AddMonthModal({ open, onClose, onAdd }: Props) {
     const month = computeDerived({
       label,
       partial,
-      income: parseFloat(income) || INCOME,
+      income: parseFloat(income) || defaultIncome,
       expenses: exp,
       cats: catNums,
-    });
+    }, catBudgets);
     onAdd(month);
     setLabel('');
     setExpenses('');
-    setCats(Object.fromEntries(CATEGORIES.map((c) => [c.name, ''])));
+    setCats(Object.fromEntries(categories.map((c) => [c.name, ''])));
     onClose();
   }
 
@@ -70,10 +82,10 @@ export function AddMonthModal({ open, onClose, onAdd }: Props) {
 
           <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 mt-5">Category Breakdown</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <div key={c.name}>
                 <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">{c.name}</label>
-                <input className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none" type="number" value={cats[c.name]} onChange={(e) => setCats({ ...cats, [c.name]: e.target.value })} placeholder="0" />
+                <input className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none" type="number" value={cats[c.name] ?? ''} onChange={(e) => setCats({ ...cats, [c.name]: e.target.value })} placeholder="0" />
               </div>
             ))}
           </div>

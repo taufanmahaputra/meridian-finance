@@ -1,19 +1,28 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Upload } from 'lucide-react';
+import { Upload, AlertTriangle } from 'lucide-react';
 import Papa from 'papaparse';
 import type { Transaction } from '@/types/finance';
 
 export default function UploadPage() {
-  const { addTransactions } = useFinance();
+  const { months, importMonth } = useFinance();
   const [parsed, setParsed] = useState<Transaction[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [imported, setImported] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [targetMonth, setTargetMonth] = useState('');
+  const [newMonthLabel, setNewMonthLabel] = useState('');
+  const [partial, setPartial] = useState(false);
+
+  const sortedMonths = useMemo(() => [...months].reverse(), [months]);
+  const isNewMonth = targetMonth === '__new__';
+  const effectiveLabel = isNewMonth ? newMonthLabel.trim() : targetMonth;
+  const existingMonth = months.find((m) => m.label === effectiveLabel);
 
   const processFile = useCallback((file: File) => {
     Papa.parse(file, {
@@ -49,8 +58,11 @@ export default function UploadPage() {
     if (e.target.files?.length) processFile(e.target.files[0]);
   }
 
-  function confirmImport() {
-    addTransactions(parsed);
+  async function confirmImport() {
+    if (!effectiveLabel) return;
+    setImporting(true);
+    await importMonth(effectiveLabel, partial, parsed);
+    setImporting(false);
     setImported(true);
   }
 
@@ -99,13 +111,64 @@ export default function UploadPage() {
         </Card>
 
         {parsed.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>Assign to Month</CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Target Month</label>
+                  <select
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 outline-none"
+                    value={targetMonth}
+                    onChange={(e) => { setTargetMonth(e.target.value); setImported(false); }}
+                  >
+                    <option value="">Select a month…</option>
+                    {sortedMonths.map((m) => <option key={m.label} value={m.label}>{m.label}</option>)}
+                    <option value="__new__">+ New month</option>
+                  </select>
+                </div>
+                {isNewMonth && (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">New Month Label</label>
+                    <input
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 outline-none"
+                      placeholder="e.g. Jul 2026"
+                      value={newMonthLabel}
+                      onChange={(e) => { setNewMonthLabel(e.target.value); setImported(false); }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                <input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} className="rounded border-gray-300" />
+                Partial month (incomplete data)
+              </label>
+
+              {existingMonth && (
+                <div className="flex items-start gap-2 px-3.5 py-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 mb-3">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    <strong>{existingMonth.label}</strong> already has data ({existingMonth.cats ? Object.values(existingMonth.cats).filter((v) => v > 0).length : 0} categories, {existingMonth.expenses ? `$${existingMonth.expenses.toLocaleString()}` : '$0'} in expenses). Importing will <strong>replace</strong> that month&apos;s transactions and totals.
+                  </span>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        )}
+
+        {parsed.length > 0 && (
           <Card>
             <CardHeader action={
               imported ? (
                 <Badge variant="success">Imported</Badge>
               ) : (
-                <button onClick={confirmImport} className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-medium rounded-lg hover:bg-emerald-600 transition-colors">
-                  Confirm &amp; Import
+                <button
+                  onClick={confirmImport}
+                  disabled={!effectiveLabel || importing}
+                  className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-medium rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {importing ? 'Importing…' : existingMonth ? 'Replace & Import' : 'Confirm & Import'}
                 </button>
               )
             }>Upload Preview — {parsed.length} transactions</CardHeader>

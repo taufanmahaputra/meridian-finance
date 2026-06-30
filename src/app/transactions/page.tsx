@@ -18,8 +18,10 @@ export default function TransactionsPage() {
   const [page, setPage] = useState(0);
 
   const allTx = useMemo(() => {
+    const monthsWithItemized = new Set(transactions.map((t) => t.month).filter(Boolean));
     const fromMonths: Transaction[] = [];
     months.forEach((m) => {
+      if (monthsWithItemized.has(m.label)) return;
       Object.entries(m.cats).forEach(([cat, total]) => {
         if (total > 0) fromMonths.push({ date: m.label, description: `${cat} — ${m.label} total`, amount: total, category: cat, type: 'Expense' });
       });

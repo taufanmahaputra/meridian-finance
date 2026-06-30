@@ -2,14 +2,13 @@
 
 import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, ReferenceLine } from 'recharts';
 import type { MonthData } from '@/types/finance';
-import { MONTHLY_BUDGET } from '@/lib/constants';
 
-export function ExpenseTrendChart({ months }: { months: MonthData[] }) {
+export function ExpenseTrendChart({ months, monthlyBudget }: { months: MonthData[]; monthlyBudget: number }) {
   const data = months.map((m) => ({
     name: m.label,
     expenses: m.expenses,
     income: m.income,
-    budget: MONTHLY_BUDGET,
+    budget: monthlyBudget,
   }));
 
   return (
@@ -22,7 +21,7 @@ export function ExpenseTrendChart({ months }: { months: MonthData[] }) {
         <Legend wrapperStyle={{ fontSize: 11 }} />
         <Bar dataKey="expenses" fill="#6366f1" fillOpacity={0.15} stroke="#6366f1" strokeWidth={2} radius={[6, 6, 0, 0]} barSize={40} />
         <Line dataKey="income" stroke="#6366f1" strokeWidth={2} dot={{ r: 4, fill: '#6366f1' }} />
-        <ReferenceLine y={MONTHLY_BUDGET} stroke="#10b981" strokeDasharray="6 4" label={{ value: 'Budget', position: 'right', fontSize: 10, fill: '#10b981' }} />
+        <ReferenceLine y={monthlyBudget} stroke="#10b981" strokeDasharray="6 4" label={{ value: 'Budget', position: 'right', fontSize: 10, fill: '#10b981' }} />
       </ComposedChart>
     </ResponsiveContainer>
   );
