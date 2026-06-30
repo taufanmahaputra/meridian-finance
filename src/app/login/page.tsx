@@ -18,8 +18,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-indigo-600 tracking-tight">Meridian</h1>
-          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[.2em] mt-1">Financial Planner</p>
+          <h1 className="text-2xl font-bold text-indigo-600 tracking-tight">OlahDana</h1>
+          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[.2em] mt-1">All-In-One Financial Platform</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
@@ -49,7 +49,7 @@ export default function LoginPage() {
 
         <div className="text-center mt-6">
           <p className="text-xs text-gray-400">
-            Meridian v1.0 &middot; No banking integration required
+            OlahDana v1.0 &middot; No banking integration required
           </p>
         </div>
       </div>

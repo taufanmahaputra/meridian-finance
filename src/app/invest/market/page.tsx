@@ -88,7 +88,7 @@ export default function MarketPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {marketKpis.map((k) => (
-            <KpiCard key={k.label} {...k} />
+            <KpiCard key={k.label} {...k} trendSuffix="" />
           ))}
         </div>
 

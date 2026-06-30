@@ -1,16 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutGrid, DollarSign, CheckCircle, Activity,
   Lightbulb, TrendingUp, Upload, X, CalendarDays, Settings,
+  Signal, Compass,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
 import { useFinance } from '@/lib/FinanceContext';
 
-const navSections = [
+const olahAturSections = [
   {
     titleKey: 'nav.section.overview',
     items: [
@@ -25,22 +26,36 @@ const navSections = [
     items: [
       { href: '/forecast', labelKey: 'nav.forecast', icon: Activity },
       { href: '/insights', labelKey: 'nav.insights', icon: Lightbulb },
-      { href: '/market', labelKey: 'nav.market', icon: TrendingUp },
     ],
   },
   {
     titleKey: 'nav.section.data',
     items: [
       { href: '/upload', labelKey: 'nav.upload', icon: Upload },
-      { href: '/settings', labelKey: 'nav.settings', icon: Settings },
+    ],
+  },
+];
+
+const olahSahamSections = [
+  {
+    titleKey: 'nav.section.invest',
+    items: [
+      { href: '/invest', labelKey: 'invest.dashboard.title', icon: LayoutGrid },
+      { href: '/invest/signals', labelKey: 'invest.signals.title', icon: Signal },
+      { href: '/invest/market', labelKey: 'nav.market', icon: TrendingUp },
+      { href: '/invest/decision', labelKey: 'invest.decision.title', icon: Compass },
     ],
   },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { open, close } = useSidebar();
   const { t } = useFinance();
+
+  const isInvest = pathname.startsWith('/invest');
+  const navSections = isInvest ? olahSahamSections : olahAturSections;
 
   return (
     <>
@@ -59,13 +74,40 @@ export function Sidebar() {
       >
         <div className="px-5 py-6 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-indigo-600 tracking-tight">Meridian</h1>
-            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">Financial Planner</span>
+            <h1 className="text-lg font-bold text-indigo-600 tracking-tight">OlahDana</h1>
+            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">All-In-One Finance</span>
           </div>
           <button onClick={close} className="md:hidden text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        <div className="px-3 pt-3">
+          <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className={cn(
+                'flex-1 px-2 py-2 rounded-md text-[11px] font-semibold transition-colors',
+                !isInvest ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              )}
+            >
+              {t('nav.module.olahatur')}
+            </button>
+            <button
+              onClick={() => router.push('/invest')}
+              className={cn(
+                'flex-1 px-2 py-2 rounded-md text-[11px] font-semibold transition-colors',
+                isInvest ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              )}
+            >
+              {t('nav.module.olahsaham')}
+            </button>
+          </div>
+          <p className="text-[10px] text-gray-400 text-center mt-1.5">
+            {isInvest ? t('nav.module.olahsahamDesc') : t('nav.module.olahaturDesc')}
+          </p>
+        </div>
+
         <nav className="flex-1 px-3 py-3 overflow-y-auto">
           {navSections.map((section) => (
             <div key={section.titleKey}>
@@ -93,6 +135,21 @@ export function Sidebar() {
               })}
             </div>
           ))}
+          <div className="pt-4">
+            <Link
+              href="/settings"
+              onClick={close}
+              className={cn(
+                'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5',
+                pathname === '/settings'
+                  ? 'bg-indigo-50 text-indigo-600 font-semibold'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+              )}
+            >
+              <Settings className="w-[18px] h-[18px]" />
+              {t('nav.settings')}
+            </Link>
+          </div>
         </nav>
         <div className="px-5 py-4 border-t border-gray-100 text-[11px] text-gray-400">
           {t('nav.footer')}<br />

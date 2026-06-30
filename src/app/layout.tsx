@@ -7,8 +7,8 @@ import { AppShell } from '@/components/AppShell';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'Meridian Finance — Personal Financial Planner',
-  description: 'Institutional-grade personal finance dashboard with tracking, auditing, forecasting, and market insights.',
+  title: 'OlahDana — All-In-One Financial Platform',
+  description: 'Institutional-grade personal finance platform with budgeting, forecasting, and investment insights — OlahAtur for money management, OlahSaham for investing.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

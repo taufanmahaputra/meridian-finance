@@ -3,7 +3,7 @@
 import { Upload, LogOut, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useFinance } from '@/lib/FinanceContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSidebar } from '@/lib/SidebarContext';
 
 interface TopbarProps {
@@ -14,7 +14,9 @@ interface TopbarProps {
 export function Topbar({ title, onAddMonth }: TopbarProps) {
   const { user, signOut, t, language } = useFinance();
   const router = useRouter();
+  const pathname = usePathname();
   const { toggle } = useSidebar();
+  const isInvest = pathname.startsWith('/invest');
 
   async function handleSignOut() {
     await signOut();
@@ -39,13 +41,15 @@ export function Topbar({ title, onAddMonth }: TopbarProps) {
         </div>
       </div>
       <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
-        <Link
-          href="/upload"
-          className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <Upload className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">{t('common.upload')}</span>
-        </Link>
+        {!isInvest && (
+          <Link
+            href="/upload"
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t('common.upload')}</span>
+          </Link>
+        )}
         {onAddMonth && (
           <button
             onClick={onAddMonth}
