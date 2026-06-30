@@ -12,7 +12,7 @@ interface TopbarProps {
 }
 
 export function Topbar({ title, onAddMonth }: TopbarProps) {
-  const { user, signOut } = useFinance();
+  const { user, signOut, t, language } = useFinance();
   const router = useRouter();
   const { toggle } = useSidebar();
 
@@ -34,7 +34,7 @@ export function Topbar({ title, onAddMonth }: TopbarProps) {
         <div className="min-w-0">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{title}</h2>
           <p className="text-xs text-gray-400 hidden sm:block">
-            Last updated: {new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+            {t('common.lastUpdated')}: {new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
           </p>
         </div>
       </div>
@@ -44,7 +44,7 @@ export function Topbar({ title, onAddMonth }: TopbarProps) {
           className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
         >
           <Upload className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Upload</span>
+          <span className="hidden sm:inline">{t('common.upload')}</span>
         </Link>
         {onAddMonth && (
           <button
@@ -52,7 +52,7 @@ export function Topbar({ title, onAddMonth }: TopbarProps) {
             className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
           >
             <span className="sm:hidden">+</span>
-            <span className="hidden sm:inline">+ Add Month</span>
+            <span className="hidden sm:inline">{t('common.addMonth')}</span>
           </button>
         )}
 
@@ -74,7 +74,7 @@ export function Topbar({ title, onAddMonth }: TopbarProps) {
               className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
-              Sign out
+              {t('common.signOut')}
             </button>
           </div>
         </div>

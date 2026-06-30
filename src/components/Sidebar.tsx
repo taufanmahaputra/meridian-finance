@@ -8,30 +8,31 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
+import { useFinance } from '@/lib/FinanceContext';
 
 const navSections = [
   {
-    title: 'Overview',
+    titleKey: 'nav.section.overview',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-      { href: '/monthly', label: 'Monthly Detail', icon: CalendarDays },
-      { href: '/transactions', label: 'Transactions', icon: DollarSign },
-      { href: '/budget', label: 'Budget & Audit', icon: CheckCircle },
+      { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutGrid },
+      { href: '/monthly', labelKey: 'nav.monthly', icon: CalendarDays },
+      { href: '/transactions', labelKey: 'nav.transactions', icon: DollarSign },
+      { href: '/budget', labelKey: 'nav.budget', icon: CheckCircle },
     ],
   },
   {
-    title: 'Analytics',
+    titleKey: 'nav.section.analytics',
     items: [
-      { href: '/forecast', label: 'Forecast', icon: Activity },
-      { href: '/insights', label: 'Insights', icon: Lightbulb },
-      { href: '/market', label: 'Market Outlook', icon: TrendingUp },
+      { href: '/forecast', labelKey: 'nav.forecast', icon: Activity },
+      { href: '/insights', labelKey: 'nav.insights', icon: Lightbulb },
+      { href: '/market', labelKey: 'nav.market', icon: TrendingUp },
     ],
   },
   {
-    title: 'Data',
+    titleKey: 'nav.section.data',
     items: [
-      { href: '/upload', label: 'Upload Statement', icon: Upload },
-      { href: '/settings', label: 'Settings', icon: Settings },
+      { href: '/upload', labelKey: 'nav.upload', icon: Upload },
+      { href: '/settings', labelKey: 'nav.settings', icon: Settings },
     ],
   },
 ];
@@ -39,6 +40,7 @@ const navSections = [
 export function Sidebar() {
   const pathname = usePathname();
   const { open, close } = useSidebar();
+  const { t } = useFinance();
 
   return (
     <>
@@ -66,9 +68,9 @@ export function Sidebar() {
         </div>
         <nav className="flex-1 px-3 py-3 overflow-y-auto">
           {navSections.map((section) => (
-            <div key={section.title}>
+            <div key={section.titleKey}>
               <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 pt-4 pb-1.5">
-                {section.title}
+                {t(section.titleKey)}
               </div>
               {section.items.map((item) => {
                 const active = pathname === item.href;
@@ -85,7 +87,7 @@ export function Sidebar() {
                     )}
                   >
                     <item.icon className="w-[18px] h-[18px]" />
-                    {item.label}
+                    {t(item.labelKey)}
                   </Link>
                 );
               })}
@@ -93,8 +95,8 @@ export function Sidebar() {
           ))}
         </nav>
         <div className="px-5 py-4 border-t border-gray-100 text-[11px] text-gray-400">
-          Meridian v1.0 &middot; Your data, your account<br />
-          No banking integration required
+          {t('nav.footer')}<br />
+          {t('nav.footerSub')}
         </div>
       </aside>
     </>

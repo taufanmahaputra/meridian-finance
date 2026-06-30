@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -30,7 +31,7 @@ function trendText(pct: number | null) {
   return `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% YTD`;
 }
 
-const assets = [
+const assetsId = [
   { asset: 'Saham Indonesia (IHSG)', view: 'Netral-Positif', viewType: 'success' as const, outlook: 'IHSG diperkirakan 6.800–7.300', relevance: 'DCA reksadana indeks / ETF IHSG jangka panjang', signal: 'Akumulasi', signalColor: 'text-emerald-600' },
   { asset: 'Saham Global (US/World)', view: 'Cukup Mahal', viewType: 'warning' as const, outlook: 'S&P berpotensi konsolidasi', relevance: 'Eksposur lewat reksadana/ETF global', signal: 'Tahan', signalColor: 'text-amber-600' },
   { asset: 'SBN / Obligasi Negara', view: 'Menarik', viewType: 'success' as const, outlook: 'Yield ~6.5–7.2%', relevance: 'Cocok untuk dana darurat & pensiun', signal: 'Beli', signalColor: 'text-emerald-600' },
@@ -39,9 +40,21 @@ const assets = [
   { asset: 'Kripto', view: 'Volatil', viewType: 'danger' as const, outlook: 'Ketidakpastian tinggi', relevance: 'Maks 5% jika ada, risiko tinggi', signal: 'Spekulatif saja', signalColor: 'text-red-500' },
 ];
 
+const assetsEn = [
+  { asset: 'Indonesian Equities (IHSG)', view: 'Neutral-Positive', viewType: 'success' as const, outlook: 'IHSG estimated 6,800–7,300', relevance: 'DCA into IHSG index funds / ETFs long-term', signal: 'Accumulate', signalColor: 'text-emerald-600' },
+  { asset: 'Global Equities (US/World)', view: 'Stretched', viewType: 'warning' as const, outlook: 'S&P may consolidate', relevance: 'Exposure via global mutual funds/ETFs', signal: 'Hold', signalColor: 'text-amber-600' },
+  { asset: 'Government Bonds (SBN)', view: 'Attractive', viewType: 'success' as const, outlook: 'Yields ~6.5–7.2%', relevance: 'Suited for emergency fund & retirement', signal: 'Buy', signalColor: 'text-emerald-600' },
+  { asset: 'Time Deposits', view: 'Decent', viewType: 'info' as const, outlook: 'Rates ~4.5–5.5% p.a.', relevance: 'Short-term cash parking', signal: 'Maintain', signalColor: 'text-blue-600' },
+  { asset: 'Gold', view: 'Elevated', viewType: 'warning' as const, outlook: 'Rp1.5–1.7M/gram', relevance: 'Inflation hedge, max 10% of portfolio', signal: 'Small position', signalColor: 'text-amber-600' },
+  { asset: 'Crypto', view: 'Volatile', viewType: 'danger' as const, outlook: 'High uncertainty', relevance: 'Max 5% if any, high risk', signal: 'Speculative only', signalColor: 'text-red-500' },
+];
+
 export default function MarketPage() {
+  const { t, language } = useFinance();
   const [data, setData] = useState<MarketResponse | null>(null);
   const [error, setError] = useState(false);
+  const isId = language === 'id';
+  const assets = isId ? assetsId : assetsEn;
 
   useEffect(() => {
     fetch('/api/market')
@@ -59,16 +72,16 @@ export default function MarketPage() {
 
   return (
     <>
-      <Topbar title="Market Outlook" />
+      <Topbar title={t('market.title')} />
       <div className="p-4 sm:p-7 max-w-[1440px]">
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <div>
-            <h3 className="text-sm font-semibold">Market Overview — Indonesia</h3>
-            <p className="text-xs text-gray-400">Key indices and economic indicators for Indonesian financial planning context</p>
+            <h3 className="text-sm font-semibold">{t('market.heading')}</h3>
+            <p className="text-xs text-gray-400">{t('market.subtitle')}</p>
           </div>
           {data && (
             <Badge variant={error ? 'warning' : 'success'}>
-              {error ? 'Data unavailable' : `Live · ${new Date(data.asOf).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`}
+              {error ? t('market.dataUnavailable') : `${t('market.live')} · ${new Date(data.asOf).toLocaleTimeString(isId ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' })}${isId ? ' WIB' : ''}`}
             </Badge>
           )}
         </div>
@@ -80,34 +93,33 @@ export default function MarketPage() {
         </div>
 
         <Card className="mb-6">
-          <CardHeader action={<Badge variant="neutral">{new Date().toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}</Badge>}>Market Commentary</CardHeader>
+          <CardHeader action={<Badge variant="neutral">{new Date().toLocaleDateString(isId ? 'id-ID' : 'en-US', { month: 'short', year: 'numeric' })}</Badge>}>{t('market.commentary')}</CardHeader>
           <CardBody>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <h4 className="text-sm font-semibold text-indigo-600 mb-2">Makro Indonesia</h4>
-                <p className="text-[13px] text-gray-500 leading-relaxed">
-                  Bank Indonesia mempertahankan BI-Rate untuk menjaga stabilitas Rupiah di tengah ketidakpastian global. Inflasi inti berada di kisaran <strong className="text-gray-900">2.5–3% YoY</strong>, masih dalam target BI. Pertumbuhan ekonomi tetap solid didukung konsumsi domestik dan belanja pemerintah, sementara IHSG bergerak mengikuti sentimen capital flow asing.
-                </p>
+                <h4 className="text-sm font-semibold text-indigo-600 mb-2">{t('market.macroTitle')}</h4>
+                <p className="text-[13px] text-gray-500 leading-relaxed">{t('market.macroBody')}</p>
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-indigo-600 mb-2">Konteks Global</h4>
-                <p className="text-[13px] text-gray-500 leading-relaxed">
-                  Arah suku bunga The Fed tetap jadi penggerak utama arus modal ke pasar berkembang termasuk Indonesia — US 10Y Treasury di atas menjadi indikator tekanan terhadap Rupiah dan IHSG. Harga komoditas (CPO, batu bara, nikel) turut memengaruhi neraca dagang dan kekuatan Rupiah jangka menengah.
-                </p>
+                <h4 className="text-sm font-semibold text-indigo-600 mb-2">{t('market.globalTitle')}</h4>
+                <p className="text-[13px] text-gray-500 leading-relaxed">{t('market.globalBody')}</p>
               </div>
             </div>
           </CardBody>
         </Card>
 
         <Card>
-          <CardHeader>Asset Class Outlook</CardHeader>
+          <CardHeader>{t('market.assetOutlook')}</CardHeader>
           <CardBody compact>
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="bg-gray-50">
-                    {['Kelas Aset', 'Pandangan Saat Ini', 'Outlook 6 Bulan', 'Relevansi Untuk Anda', 'Sinyal'].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
+                    {[
+                      t('market.table.assetClass'), t('market.table.currentView'), t('market.table.outlook'),
+                      t('market.table.relevance'), t('market.table.signal'),
+                    ].map((h, i) => (
+                      <th key={i} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
                     ))}
                   </tr>
                 </thead>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { computeDerived } from '@/lib/calculations';
+import { useFinance } from '@/lib/FinanceContext';
 import type { MonthData, Category } from '@/types/finance';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function AddMonthModal({ open, onClose, onAdd, categories, catBudgets, defaultIncome, currency }: Props) {
+  const { t } = useFinance();
   const [label, setLabel] = useState('');
   const [income, setIncome] = useState(defaultIncome.toString());
   const [expenses, setExpenses] = useState('');
@@ -62,26 +64,26 @@ export function AddMonthModal({ open, onClose, onAdd, categories, catBudgets, de
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center" onClick={onClose}>
       <div className="bg-white rounded-2xl w-[94%] sm:w-[90%] max-w-[640px] max-h-[85vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
-          <h3 className="text-base font-semibold">Add Month Data</h3>
+          <h3 className="text-base font-semibold">{t('addMonth.title')}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             <div>
-              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Month Label</label>
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('addMonth.monthLabel')}</label>
               <input className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Jul 2026" required />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Income ({currency})</label>
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('addMonth.income')} ({currency})</label>
               <input className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none" type="number" value={income} onChange={(e) => setIncome(e.target.value)} />
             </div>
           </div>
           <div className="mb-4">
-            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Total Expenses</label>
+            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('addMonth.totalExpenses')}</label>
             <input className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none" type="number" value={expenses} onChange={(e) => setExpenses(e.target.value)} placeholder="0" required />
           </div>
 
-          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 mt-5">Category Breakdown</div>
+          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 mt-5">{t('addMonth.categoryBreakdown')}</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {categories.map((c) => (
               <div key={c.name}>
@@ -94,13 +96,13 @@ export function AddMonthModal({ open, onClose, onAdd, categories, catBudgets, de
           <div className="mt-4">
             <label className="flex items-center gap-2 text-sm text-gray-600">
               <input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} className="rounded border-gray-300" />
-              Partial month (incomplete data)
+              {t('addMonth.partial')}
             </label>
           </div>
 
           <div className="flex gap-3 mt-6">
-            <button type="submit" className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">Add Month</button>
-            <button type="button" onClick={onClose} className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">{t('addMonth.add')}</button>
+            <button type="button" onClick={onClose} className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">{t('common.cancel')}</button>
           </div>
         </form>
       </div>

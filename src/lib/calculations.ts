@@ -1,5 +1,6 @@
 import type { MonthData, Insight, ActionItem } from '@/types/finance';
 import { CURRENCY_SYMBOLS, DEFAULT_CURRENCY } from './constants';
+import { DEFAULT_LANGUAGE, type Language } from './i18n';
 
 export function computeDerived(
   m: Partial<MonthData> & { income: number; expenses: number; cats: Record<string, number>; partial: boolean; label: string },
@@ -80,19 +81,27 @@ export function fmtPct(n: number): string {
   return `${n.toFixed(1)}%`;
 }
 
-export function generateInsights(months: MonthData[], catBudgets: Record<string, number> = {}, currency: string = DEFAULT_CURRENCY): Insight[] {
+export function generateInsights(
+  months: MonthData[],
+  catBudgets: Record<string, number> = {},
+  currency: string = DEFAULT_CURRENCY,
+  language: Language = DEFAULT_LANGUAGE
+): Insight[] {
   if (months.length === 0) return [];
   const m = months[months.length - 1];
   const insights: Insight[] = [];
   const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
+  const isId = language === 'id';
 
   if (months.length >= 3) {
     const rates = months.slice(-3).map((x) => x.savingsRate);
     if (rates[2] < rates[0]) {
       insights.push({
         priority: 'high',
-        title: 'Savings Rate Declining',
-        body: `Rate dropped from <strong>${rates[0].toFixed(1)}% → ${rates[1].toFixed(1)}% → ${rates[2].toFixed(1)}%</strong> over 3 months. The <strong>-${(rates[0] - rates[2]).toFixed(1)}pp trend</strong> needs attention.`,
+        title: isId ? 'Tingkat Tabungan Menurun' : 'Savings Rate Declining',
+        body: isId
+          ? `Tingkat tabungan turun dari <strong>${rates[0].toFixed(1)}% → ${rates[1].toFixed(1)}% → ${rates[2].toFixed(1)}%</strong> selama 3 bulan. Tren <strong>-${(rates[0] - rates[2]).toFixed(1)}pp</strong> ini perlu diperhatikan.`
+          : `Rate dropped from <strong>${rates[0].toFixed(1)}% → ${rates[1].toFixed(1)}% → ${rates[2].toFixed(1)}%</strong> over 3 months. The <strong>-${(rates[0] - rates[2]).toFixed(1)}pp trend</strong> needs attention.`,
       });
     }
   }
@@ -103,8 +112,10 @@ export function generateInsights(months: MonthData[], catBudgets: Record<string,
     const avgTravel = months.reduce((s, x) => s + (x.cats['Travel'] || 0), 0) / months.length;
     insights.push({
       priority: 'high',
-      title: 'Travel Has No Budget Allocated',
-      body: `Travel spending averages <strong>${fmt(avgTravel, currency)}/month</strong>. This unbudgeted category drives most budget overruns. Allocating ${symbol}500–700 would fix several over-budget flags.`,
+      title: isId ? 'Travel Belum Punya Anggaran' : 'Travel Has No Budget Allocated',
+      body: isId
+        ? `Pengeluaran Travel rata-rata <strong>${fmt(avgTravel, currency)}/bulan</strong>. Kategori tanpa anggaran ini menjadi penyebab utama pelanggaran anggaran. Mengalokasikan ${symbol}500–700 dapat memperbaiki beberapa flag lewat anggaran.`
+        : `Travel spending averages <strong>${fmt(avgTravel, currency)}/month</strong>. This unbudgeted category drives most budget overruns. Allocating ${symbol}500–700 would fix several over-budget flags.`,
     });
   }
 
@@ -112,8 +123,10 @@ export function generateInsights(months: MonthData[], catBudgets: Record<string,
   if (installments > 500) {
     insights.push({
       priority: 'medium',
-      title: 'Installments Are Predictable Fixed Costs',
-      body: `Monthly installments at <strong>${fmt(installments, currency)}</strong> are recurring obligations, not discretionary spending. Track them separately.`,
+      title: isId ? 'Cicilan Adalah Biaya Tetap yang Dapat Diprediksi' : 'Installments Are Predictable Fixed Costs',
+      body: isId
+        ? `Cicilan bulanan sebesar <strong>${fmt(installments, currency)}</strong> adalah kewajiban tetap, bukan pengeluaran diskresioner. Lacak secara terpisah.`
+        : `Monthly installments at <strong>${fmt(installments, currency)}</strong> are recurring obligations, not discretionary spending. Track them separately.`,
     });
   }
 
@@ -122,8 +135,10 @@ export function generateInsights(months: MonthData[], catBudgets: Record<string,
     if (budget > 0 && spent > budget * 3) {
       insights.push({
         priority: 'medium',
-        title: `${cat} Significantly Over Budget`,
-        body: `<strong>${fmt(spent, currency)}</strong> spent vs <strong>${fmt(budget, currency)}</strong> budget (${((spent / budget) * 100).toFixed(0)}%). Consider adjusting your budget to reflect reality.`,
+        title: isId ? `${cat} Jauh Melebihi Anggaran` : `${cat} Significantly Over Budget`,
+        body: isId
+          ? `<strong>${fmt(spent, currency)}</strong> terpakai vs anggaran <strong>${fmt(budget, currency)}</strong> (${((spent / budget) * 100).toFixed(0)}%). Pertimbangkan menyesuaikan anggaran agar sesuai kenyataan.`
+          : `<strong>${fmt(spent, currency)}</strong> spent vs <strong>${fmt(budget, currency)}</strong> budget (${((spent / budget) * 100).toFixed(0)}%). Consider adjusting your budget to reflect reality.`,
       });
     }
   });
@@ -133,8 +148,10 @@ export function generateInsights(months: MonthData[], catBudgets: Record<string,
   if (food < foodBudget * 0.7) {
     insights.push({
       priority: 'low',
-      title: 'Food & Groceries Well Managed',
-      body: `Spending at <strong>${fmt(food, currency)}</strong> — well under the <strong>${fmt(foodBudget, currency)}</strong> budget. Consider reducing delivery frequency for additional savings.`,
+      title: isId ? 'Makanan & Belanja Terkelola Baik' : 'Food & Groceries Well Managed',
+      body: isId
+        ? `Pengeluaran <strong>${fmt(food, currency)}</strong> — jauh di bawah anggaran <strong>${fmt(foodBudget, currency)}</strong>. Pertimbangkan mengurangi frekuensi pesan-antar untuk tabungan tambahan.`
+        : `Spending at <strong>${fmt(food, currency)}</strong> — well under the <strong>${fmt(foodBudget, currency)}</strong> budget. Consider reducing delivery frequency for additional savings.`,
     });
   }
 
@@ -142,41 +159,64 @@ export function generateInsights(months: MonthData[], catBudgets: Record<string,
   const housingPct = (housing / m.income) * 100;
   insights.push({
     priority: 'info',
-    title: `Housing at ${housingPct.toFixed(0)}% of Income`,
-    body: `Rent at <strong>${fmt(housing, currency)}</strong> is ${housingPct < 30 ? 'within' : 'above'} the 30% benchmark. ${housingPct < 30 ? 'You\'re in a healthy range.' : 'Consider ways to reduce housing costs.'}`,
+    title: isId ? `Housing di ${housingPct.toFixed(0)}% dari Pendapatan` : `Housing at ${housingPct.toFixed(0)}% of Income`,
+    body: isId
+      ? `Biaya tempat tinggal <strong>${fmt(housing, currency)}</strong> ${housingPct < 30 ? 'masih dalam' : 'melebihi'} batas wajar 30%. ${housingPct < 30 ? 'Anda berada di rentang yang sehat.' : 'Pertimbangkan cara mengurangi biaya tempat tinggal.'}`
+      : `Rent at <strong>${fmt(housing, currency)}</strong> is ${housingPct < 30 ? 'within' : 'above'} the 30% benchmark. ${housingPct < 30 ? 'You\'re in a healthy range.' : 'Consider ways to reduce housing costs.'}`,
   });
 
   return insights;
 }
 
-export function generateActions(months: MonthData[], catBudgets: Record<string, number> = {}, currency: string = DEFAULT_CURRENCY): ActionItem[] {
+export function generateActions(
+  months: MonthData[],
+  catBudgets: Record<string, number> = {},
+  currency: string = DEFAULT_CURRENCY,
+  language: Language = DEFAULT_LANGUAGE
+): ActionItem[] {
   if (months.length === 0) return [];
   const actions: ActionItem[] = [];
   const m = months[months.length - 1];
   const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
+  const isId = language === 'id';
 
   const avgTravel = months.reduce((s, x) => s + (x.cats['Travel'] || 0), 0) / months.length;
   if (avgTravel > 100 && (catBudgets['Travel'] || 0) === 0) {
-    actions.push({ title: `Set Travel budget at ${symbol}${Math.round(avgTravel / 100) * 100}/mo`, detail: `You've averaged ${fmt(avgTravel, currency)}/mo on travel. Allocating a budget eliminates most over-budget flags.` });
+    actions.push({
+      title: isId ? `Tetapkan anggaran Travel sebesar ${symbol}${Math.round(avgTravel / 100) * 100}/bln` : `Set Travel budget at ${symbol}${Math.round(avgTravel / 100) * 100}/mo`,
+      detail: isId ? `Rata-rata pengeluaran Travel Anda ${fmt(avgTravel, currency)}/bln. Mengalokasikan anggaran menghilangkan sebagian besar flag lewat anggaran.` : `You've averaged ${fmt(avgTravel, currency)}/mo on travel. Allocating a budget eliminates most over-budget flags.`,
+    });
   }
 
   const installments = m.cats['Installments'] || 0;
   if (installments > 0) {
-    actions.push({ title: `Create Installments budget line (${fmt(installments, currency)}/mo)`, detail: 'Installments are predictable. Tracking them separately prevents confusion with discretionary spending.' });
+    actions.push({
+      title: isId ? `Buat baris anggaran Cicilan (${fmt(installments, currency)}/bln)` : `Create Installments budget line (${fmt(installments, currency)}/mo)`,
+      detail: isId ? 'Cicilan bersifat dapat diprediksi. Melacaknya secara terpisah mencegah kerancuan dengan pengeluaran diskresioner.' : 'Installments are predictable. Tracking them separately prevents confusion with discretionary spending.',
+    });
   }
 
   Object.entries(m.cats).forEach(([cat, spent]) => {
     const budget = catBudgets[cat] || 0;
     if (budget > 0 && spent > budget * 1.5) {
-      actions.push({ title: `Adjust ${cat} budget to ${fmt(Math.ceil(spent / 50) * 50, currency)}`, detail: `Current budget of ${fmt(budget, currency)} is consistently exceeded (${fmt(spent, currency)} this month). Update to reflect actual spending.` });
+      actions.push({
+        title: isId ? `Sesuaikan anggaran ${cat} menjadi ${fmt(Math.ceil(spent / 50) * 50, currency)}` : `Adjust ${cat} budget to ${fmt(Math.ceil(spent / 50) * 50, currency)}`,
+        detail: isId ? `Anggaran saat ini ${fmt(budget, currency)} secara konsisten terlampaui (${fmt(spent, currency)} bulan ini). Perbarui agar sesuai pengeluaran aktual.` : `Current budget of ${fmt(budget, currency)} is consistently exceeded (${fmt(spent, currency)} this month). Update to reflect actual spending.`,
+      });
     }
   });
 
   if (m.savingsRate > 30) {
-    actions.push({ title: 'Automate savings transfer on salary day', detail: `Transfer ${symbol}${Math.round(m.savings / 500) * 500} to a separate savings account on the 1st of each month.` });
+    actions.push({
+      title: isId ? 'Otomatiskan transfer tabungan saat gajian' : 'Automate savings transfer on salary day',
+      detail: isId ? `Transfer ${symbol}${Math.round(m.savings / 500) * 500} ke rekening tabungan terpisah setiap tanggal 1.` : `Transfer ${symbol}${Math.round(m.savings / 500) * 500} to a separate savings account on the 1st of each month.`,
+    });
   }
 
-  actions.push({ title: 'Build 6-month emergency fund', detail: `Target: ${fmt(m.expenses * 6, currency)}. Allocate monthly until reached, then redirect to investments.` });
+  actions.push({
+    title: isId ? 'Bangun dana darurat 6 bulan' : 'Build 6-month emergency fund',
+    detail: isId ? `Target: ${fmt(m.expenses * 6, currency)}. Alokasikan setiap bulan hingga tercapai, lalu alihkan ke investasi.` : `Target: ${fmt(m.expenses * 6, currency)}. Allocate monthly until reached, then redirect to investments.`,
+  });
 
   return actions;
 }

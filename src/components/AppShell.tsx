@@ -7,7 +7,7 @@ import { SidebarProvider } from '@/lib/SidebarContext';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { loading } = useFinance();
+  const { loading, t } = useFinance();
   const isLogin = pathname === '/login' || pathname.startsWith('/auth/');
 
   if (isLogin) {
@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-400">Loading your data...</p>
+          <p className="text-sm text-gray-400">{t('common.loading')}</p>
         </div>
       </div>
     );

@@ -22,18 +22,18 @@ const priorityBorder = {
 };
 
 export default function InsightsPage() {
-  const { months, catBudgets, currency } = useFinance();
-  const insights = generateInsights(months, catBudgets, currency);
-  const actions = generateActions(months, catBudgets, currency);
+  const { months, catBudgets, currency, language, t } = useFinance();
+  const insights = generateInsights(months, catBudgets, currency, language);
+  const actions = generateActions(months, catBudgets, currency, language);
 
   if (months.length === 0) {
     return (
       <>
-        <Topbar title="Insights" />
+        <Topbar title={t('insights.title')} />
         <div className="p-4 sm:p-7 max-w-[1440px]">
           <EmptyState
-            title="No insights yet"
-            description="Upload an e-statement or add a month to generate personalized recommendations."
+            title={t('insights.empty.title')}
+            description={t('insights.empty.desc')}
           />
         </div>
       </>
@@ -42,11 +42,11 @@ export default function InsightsPage() {
 
   return (
     <>
-      <Topbar title="Insights" />
+      <Topbar title={t('insights.title')} />
       <div className="p-4 sm:p-7 max-w-[1440px]">
         <div className="mb-4">
-          <h3 className="text-sm font-semibold">Actionable Insights</h3>
-          <p className="text-xs text-gray-400">AI-generated recommendations based on your spending patterns</p>
+          <h3 className="text-sm font-semibold">{t('insights.heading')}</h3>
+          <p className="text-xs text-gray-400">{t('insights.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -62,7 +62,7 @@ export default function InsightsPage() {
         </div>
 
         <Card>
-          <CardHeader>Priority Action Items</CardHeader>
+          <CardHeader>{t('insights.priorityActions')}</CardHeader>
           <CardBody compact>
             {actions.map((action, i) => (
               <div key={i} className="flex gap-3.5 px-5 py-3.5 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">

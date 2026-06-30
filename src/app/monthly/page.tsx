@@ -12,7 +12,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct, getTrendData } from '@/lib/calculations';
 
 function MonthlyDetailContent() {
-  const { months, transactions, catBudgets, catColors, currency } = useFinance();
+  const { months, transactions, catBudgets, catColors, currency, t } = useFinance();
   const searchParams = useSearchParams();
   const requested = searchParams.get('m');
   const [selected, setSelected] = useState<string | null>(null);
@@ -30,11 +30,11 @@ function MonthlyDetailContent() {
   if (months.length === 0 || !m) {
     return (
       <>
-        <Topbar title="Monthly Detail" />
+        <Topbar title={t('monthly.title')} />
         <div className="p-4 sm:p-7 max-w-[1440px]">
           <EmptyState
-            title="No months to inspect yet"
-            description="Upload an e-statement or add a month to see a detailed breakdown here."
+            title={t('monthly.empty.title')}
+            description={t('monthly.empty.desc')}
           />
         </div>
       </>
@@ -42,10 +42,10 @@ function MonthlyDetailContent() {
   }
 
   const kpis = [
-    { icon: <span>💰</span>, iconBg: 'bg-indigo-50', label: 'Net Savings', value: fmt(m.savings, currency), ...getTrendData(m.savings, p?.savings ?? null) },
-    { icon: <span>📊</span>, iconBg: 'bg-emerald-50', label: 'Savings Rate', value: fmtPct(m.savingsRate), ...getTrendData(m.savingsRate, p?.savingsRate ?? null) },
-    { icon: <span>💳</span>, iconBg: 'bg-red-50', label: 'Total Expenses', value: fmt(m.expenses, currency), ...getTrendData(m.expenses, p?.expenses ?? null, true) },
-    { icon: <span>📈</span>, iconBg: 'bg-amber-50', label: 'Budget Util.', value: fmtPct(m.budgetUtil), ...getTrendData(m.budgetUtil, p?.budgetUtil ?? null, true) },
+    { icon: <span>💰</span>, iconBg: 'bg-indigo-50', label: t('dashboard.kpi.netSavings'), value: fmt(m.savings, currency), ...getTrendData(m.savings, p?.savings ?? null) },
+    { icon: <span>📊</span>, iconBg: 'bg-emerald-50', label: t('dashboard.kpi.savingsRate'), value: fmtPct(m.savingsRate), ...getTrendData(m.savingsRate, p?.savingsRate ?? null) },
+    { icon: <span>💳</span>, iconBg: 'bg-red-50', label: t('dashboard.kpi.totalExpenses'), value: fmt(m.expenses, currency), ...getTrendData(m.expenses, p?.expenses ?? null, true) },
+    { icon: <span>📈</span>, iconBg: 'bg-amber-50', label: t('dashboard.kpi.budgetUtil'), value: fmtPct(m.budgetUtil), ...getTrendData(m.budgetUtil, p?.budgetUtil ?? null, true) },
   ];
 
   const catRows = Object.entries(m.cats)
@@ -60,14 +60,14 @@ function MonthlyDetailContent() {
 
   return (
     <>
-      <Topbar title="Monthly Detail" />
+      <Topbar title={t('monthly.title')} />
       <div className="p-4 sm:p-7 max-w-[1440px]">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
           <div>
             <h3 className="text-sm font-semibold flex items-center gap-2">
-              {m.label} {m.partial && <Badge variant="warning" className="text-[9px]">Partial</Badge>}
+              {m.label} {m.partial && <Badge variant="warning" className="text-[9px]">{t('dashboard.partial')}</Badge>}
             </h3>
-            <p className="text-xs text-gray-400">Detailed breakdown for this month</p>
+            <p className="text-xs text-gray-400">{t('monthly.subtitle')}</p>
           </div>
           <select
             className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-gray-50"
@@ -86,18 +86,21 @@ function MonthlyDetailContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-4 mb-6">
           <Card>
-            <CardHeader>Category Split</CardHeader>
+            <CardHeader>{t('monthly.categorySplit')}</CardHeader>
             <CardBody><CategoryPieChart month={m} catColors={catColors} /></CardBody>
           </Card>
           <Card>
-            <CardHeader>Category Detail</CardHeader>
+            <CardHeader>{t('monthly.categoryDetail')}</CardHeader>
             <CardBody compact>
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
                     <tr className="bg-gray-50">
-                      {['Category', 'Spent', 'Budget', '% Used', 'MoM'].map((h) => (
-                        <th key={h} className="px-4 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
+                      {[
+                        t('monthly.table.category'), t('monthly.table.spent'), t('monthly.table.budget'),
+                        t('monthly.table.pctUsed'), t('monthly.table.mom'),
+                      ].map((h, i) => (
+                        <th key={i} className="px-4 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -122,14 +125,17 @@ function MonthlyDetailContent() {
         </div>
 
         <Card>
-          <CardHeader action={<Badge variant="neutral">{monthTx.length} transactions</Badge>}>Transactions This Month</CardHeader>
+          <CardHeader action={<Badge variant="neutral">{monthTx.length} {t('monthly.transactionsCount')}</Badge>}>{t('monthly.transactionsThisMonth')}</CardHeader>
           <CardBody compact>
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="bg-gray-50">
-                    {['Date', 'Description', 'Amount', 'Category', 'Type'].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
+                    {[
+                      t('transactions.date'), t('transactions.description'), t('transactions.amount'),
+                      t('transactions.category'), t('transactions.type'),
+                    ].map((h, i) => (
+                      <th key={i} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -144,7 +150,7 @@ function MonthlyDetailContent() {
                     </tr>
                   ))}
                   {monthTx.length === 0 && (
-                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 text-sm">No individual transactions imported for this month — only the category totals above.</td></tr>
+                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 text-sm">{t('monthly.noTransactions')}</td></tr>
                   )}
                 </tbody>
               </table>

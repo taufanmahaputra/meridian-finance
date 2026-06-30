@@ -10,16 +10,16 @@ import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct } from '@/lib/calculations';
 
 export default function BudgetPage() {
-  const { months, categories, catBudgets, catColors, currency } = useFinance();
+  const { months, categories, catBudgets, catColors, currency, t } = useFinance();
 
   if (months.length === 0) {
     return (
       <>
-        <Topbar title="Budget & Audit" />
+        <Topbar title={t('budget.title')} />
         <div className="p-4 sm:p-7 max-w-[1440px]">
           <EmptyState
-            title="No budget data yet"
-            description="Upload an e-statement or add a month to start auditing your budget."
+            title={t('budget.empty.title')}
+            description={t('budget.empty.desc')}
           />
         </div>
       </>
@@ -34,34 +34,38 @@ export default function BudgetPage() {
     const prev = p?.cats?.[cat] || 0;
     if (prev > 0 && spent > prev * 2) anomalies.push({ msg: `${cat} spiked ${((spent / prev - 1) * 100).toFixed(0)}% (${fmt(prev, currency)} → ${fmt(spent, currency)})`, severity: 'danger' });
     const budget = catBudgets[cat] || 0;
-    if (budget > 0 && spent > budget * 1.5) anomalies.push({ msg: `${cat} is ${fmtPct((spent / budget) * 100)} of budget (${fmt(spent)} vs ${fmt(budget)})`, severity: 'warning' });
+    if (budget > 0 && spent > budget * 1.5) anomalies.push({ msg: `${cat} is ${fmtPct((spent / budget) * 100)} of budget (${fmt(spent, currency)} vs ${fmt(budget, currency)})`, severity: 'warning' });
   });
 
   return (
     <>
-      <Topbar title="Budget & Audit" />
+      <Topbar title={t('budget.title')} />
       <div className="p-4 sm:p-7 max-w-[1440px]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <Card>
-            <CardHeader>Budget Utilization</CardHeader>
+            <CardHeader>{t('budget.utilization')}</CardHeader>
             <CardBody><BudgetUtilChart months={months} /></CardBody>
           </Card>
           <Card>
-            <CardHeader>Category Stacked Trend</CardHeader>
+            <CardHeader>{t('budget.categoryStackedTrend')}</CardHeader>
             <CardBody><CategoryStackChart months={months} categories={categories} /></CardBody>
           </Card>
         </div>
 
         <div className="mb-6">
-          <h3 className="text-sm font-semibold mb-3">Budget Audit — Category Detail</h3>
+          <h3 className="text-sm font-semibold mb-3">{t('budget.auditTitle')}</h3>
           <Card>
             <CardBody compact>
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
                     <tr className="bg-gray-50">
-                      {['Category', 'Budget', 'Actual', 'Variance', '% Used', 'MoM', 'Status', 'Usage'].map((h) => (
-                        <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
+                      {[
+                        t('budget.table.category'), t('budget.table.budget'), t('budget.table.actual'),
+                        t('budget.table.variance'), t('budget.table.pctUsed'), t('budget.table.mom'),
+                        t('budget.table.status'), t('budget.table.usage'),
+                      ].map((h, i) => (
+                        <th key={i} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -73,7 +77,7 @@ export default function BudgetPage() {
                       const prevSpent = p?.cats?.[cat] || 0;
                       const mom = prevSpent ? ((spent - prevSpent) / prevSpent) * 100 : null;
                       const status = !budget ? 'neutral' : (pctUsed ?? 0) > 100 ? 'danger' : (pctUsed ?? 0) > 85 ? 'warning' : 'success';
-                      const statusLabel = !budget ? 'No Budget' : (pctUsed ?? 0) > 100 ? 'Over' : (pctUsed ?? 0) > 85 ? 'Near Limit' : 'On Track';
+                      const statusLabel = !budget ? t('budget.status.noBudget') : (pctUsed ?? 0) > 100 ? t('budget.status.over') : (pctUsed ?? 0) > 85 ? t('budget.status.nearLimit') : t('budget.status.onTrack');
                       const fillColor = !budget ? '#e2e8f0' : (pctUsed ?? 0) > 100 ? '#ef4444' : (pctUsed ?? 0) > 85 ? '#f59e0b' : '#10b981';
 
                       return (
@@ -104,16 +108,16 @@ export default function BudgetPage() {
         </div>
 
         <Card>
-          <CardHeader action={<Badge variant="info">Auto-scanned</Badge>}>Anomaly Detection</CardHeader>
+          <CardHeader action={<Badge variant="info">{t('budget.autoScanned')}</Badge>}>{t('budget.anomalyDetection')}</CardHeader>
           <CardBody compact>
             {anomalies.length === 0 ? (
-              <div className="py-8 text-center text-gray-400 text-sm">No anomalies detected</div>
+              <div className="py-8 text-center text-gray-400 text-sm">{t('budget.noAnomalies')}</div>
             ) : (
               anomalies.map((a, i) => (
                 <div key={i} className="flex gap-3.5 px-5 py-3.5 border-b border-gray-100 last:border-0 hover:bg-gray-50/50">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5 ${a.severity === 'danger' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'}`}>!</div>
                   <div className="text-[13px]">
-                    <strong className="block mb-0.5">{a.severity === 'danger' ? 'Spending Spike' : 'Budget Breach'}</strong>
+                    <strong className="block mb-0.5">{a.severity === 'danger' ? t('budget.spendingSpike') : t('budget.budgetBreach')}</strong>
                     <span className="text-gray-500">{a.msg}</span>
                   </div>
                 </div>

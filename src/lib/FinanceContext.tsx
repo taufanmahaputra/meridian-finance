@@ -5,6 +5,7 @@ import type { MonthData, Transaction, Category } from '@/types/finance';
 import { computeDerived } from '@/lib/calculations';
 import { createClient } from '@/lib/supabase';
 import { DEFAULT_CATEGORIES, DEFAULT_CURRENCY, nextChartColor } from '@/lib/constants';
+import { t as translate, DEFAULT_LANGUAGE, type Language } from '@/lib/i18n';
 import type { User } from '@supabase/supabase-js';
 
 interface FinanceState {
@@ -16,6 +17,8 @@ interface FinanceState {
   monthlyBudget: number;
   income: number;
   currency: string;
+  language: Language;
+  t: (key: string, vars?: Record<string, string | number>) => string;
   user: User | null;
   loading: boolean;
   addMonth: (month: MonthData) => void;
@@ -25,6 +28,7 @@ interface FinanceState {
   deleteCategory: (id: string) => Promise<void>;
   updateIncome: (income: number) => Promise<void>;
   updateCurrency: (currency: string) => Promise<void>;
+  updateLanguage: (language: Language) => Promise<void>;
   clearAllData: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -37,6 +41,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [income, setIncome] = useState(0);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+  const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -58,7 +63,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         supabase.from('months').select('*').eq('user_id', userId).order('created_at'),
         supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
         supabase.from('categories').select('*').eq('user_id', userId).order('created_at'),
-        supabase.from('profiles').select('monthly_income, currency').eq('id', userId).single(),
+        supabase.from('profiles').select('monthly_income, currency, language').eq('id', userId).single(),
       ]);
 
       let cats = catRes.data ?? [];
@@ -100,6 +105,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
       setIncome(Number(profileRes.data?.monthly_income) || 0);
       setCurrency(profileRes.data?.currency || DEFAULT_CURRENCY);
+      setLanguage((profileRes.data?.language as Language) || DEFAULT_LANGUAGE);
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
@@ -240,6 +246,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  const updateLanguage = useCallback(async (newLanguage: Language) => {
+    setLanguage(newLanguage);
+    if (user) {
+      await supabase.from('profiles').update({ language: newLanguage }).eq('id', user.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const clearAllData = useCallback(async () => {
     setMonths([]);
     setTransactions([]);
@@ -260,13 +274,16 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setCategories([]);
     setIncome(0);
     setCurrency(DEFAULT_CURRENCY);
+    setLanguage(DEFAULT_LANGUAGE);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const t = useCallback((key: string, vars?: Record<string, string | number>) => translate(language, key, vars), [language]);
+
   return (
     <FinanceContext.Provider value={{
-      months, transactions, categories, catBudgets, catColors, monthlyBudget, income, currency, user, loading,
-      addMonth, importMonth, addCategory, updateCategory, deleteCategory, updateIncome, updateCurrency, clearAllData, signOut,
+      months, transactions, categories, catBudgets, catColors, monthlyBudget, income, currency, language, t, user, loading,
+      addMonth, importMonth, addCategory, updateCategory, deleteCategory, updateIncome, updateCurrency, updateLanguage, clearAllData, signOut,
     }}>
       {children}
     </FinanceContext.Provider>
