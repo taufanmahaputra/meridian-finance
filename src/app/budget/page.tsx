@@ -6,11 +6,27 @@ import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { BudgetUtilChart } from '@/components/charts/BudgetUtilChart';
 import { CategoryStackChart } from '@/components/charts/CategoryStackChart';
+import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct } from '@/lib/calculations';
 import { CAT_BUDGETS, CAT_COLORS } from '@/lib/constants';
 
 export default function BudgetPage() {
   const { months } = useFinance();
+
+  if (months.length === 0) {
+    return (
+      <>
+        <Topbar title="Budget & Audit" />
+        <div className="p-4 sm:p-7 max-w-[1440px]">
+          <EmptyState
+            title="No budget data yet"
+            description="Upload an e-statement or add a month to start auditing your budget."
+          />
+        </div>
+      </>
+    );
+  }
+
   const m = months[months.length - 1];
   const p = months.length >= 2 ? months[months.length - 2] : null;
 
@@ -25,8 +41,8 @@ export default function BudgetPage() {
   return (
     <>
       <Topbar title="Budget & Audit" />
-      <div className="p-7 max-w-[1440px]">
-        <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="p-4 sm:p-7 max-w-[1440px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <Card>
             <CardHeader>Budget Utilization</CardHeader>
             <CardBody><BudgetUtilChart months={months} /></CardBody>

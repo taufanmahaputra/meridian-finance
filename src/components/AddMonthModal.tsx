@@ -47,13 +47,13 @@ export function AddMonthModal({ open, onClose, onAdd }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-[90%] max-w-[640px] max-h-[85vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl w-[94%] sm:w-[90%] max-w-[640px] max-h-[85vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
           <h3 className="text-base font-semibold">Add Month Data</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5">
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             <div>
               <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Month Label</label>
               <input className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Jul 2026" required />
@@ -69,7 +69,7 @@ export function AddMonthModal({ open, onClose, onAdd }: Props) {
           </div>
 
           <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 mt-5">Category Breakdown</div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {CATEGORIES.map((c) => (
               <div key={c.name}>
                 <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">{c.name}</label>

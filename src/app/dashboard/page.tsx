@@ -11,12 +11,29 @@ import { ExpenseTrendChart } from '@/components/charts/ExpenseTrendChart';
 import { SavingsRateChart } from '@/components/charts/SavingsRateChart';
 import { CategoryPieChart } from '@/components/charts/CategoryPieChart';
 import { HealthRing } from '@/components/charts/HealthRing';
+import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct, getTrendData, getHealthScore } from '@/lib/calculations';
 
 export default function DashboardPage() {
   const { months, addMonth } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [pieIdx, setPieIdx] = useState(months.length - 1);
+
+  if (months.length === 0) {
+    return (
+      <>
+        <Topbar title="Dashboard" onAddMonth={() => setModalOpen(true)} />
+        <div className="p-4 sm:p-7 max-w-[1440px]">
+          <EmptyState
+            title="No financial data yet"
+            description="Upload an e-statement or add your first month manually to see your dashboard come to life."
+            onAddMonth={() => setModalOpen(true)}
+          />
+        </div>
+        <AddMonthModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addMonth} />
+      </>
+    );
+  }
 
   const m = months[months.length - 1];
   const p = months.length >= 2 ? months[months.length - 2] : null;
@@ -39,14 +56,14 @@ export default function DashboardPage() {
   return (
     <>
       <Topbar title="Dashboard" onAddMonth={() => setModalOpen(true)} />
-      <div className="p-7 max-w-[1440px]">
-        <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="p-4 sm:p-7 max-w-[1440px]">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {kpis.map((k) => (
             <KpiCard key={k.label} icon={k.icon} iconBg={k.iconBg} label={k.label} value={k.value} trendText={k.text} trendClassName={k.className} />
           ))}
         </div>
 
-        <div className="grid grid-cols-[2fr_1fr] gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-6">
           <Card>
             <CardHeader>Expense Trend vs Budget</CardHeader>
             <CardBody><ExpenseTrendChart months={months} /></CardBody>
@@ -67,7 +84,7 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <Card>
             <CardHeader>Savings Rate Trend</CardHeader>
             <CardBody><SavingsRateChart months={months} /></CardBody>

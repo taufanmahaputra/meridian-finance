@@ -57,7 +57,7 @@ export default function UploadPage() {
   return (
     <>
       <Topbar title="Upload Statement" />
-      <div className="p-7 max-w-[1440px]">
+      <div className="p-4 sm:p-7 max-w-[1440px]">
         <div className="mb-4">
           <h3 className="text-sm font-semibold">Upload E-Statement</h3>
           <p className="text-xs text-gray-400">Import your bank or credit card statement to auto-categorize transactions</p>
@@ -66,7 +66,7 @@ export default function UploadPage() {
         <Card className="mb-6">
           <CardBody>
             <div
-              className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors ${dragOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 bg-gray-50 hover:border-indigo-300'}`}
+              className={`border-2 border-dashed rounded-xl p-6 sm:p-12 text-center cursor-pointer transition-colors ${dragOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 bg-gray-50 hover:border-indigo-300'}`}
               onClick={() => document.getElementById('fileInput')?.click()}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}

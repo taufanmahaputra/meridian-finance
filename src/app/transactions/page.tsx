@@ -46,19 +46,19 @@ export default function TransactionsPage() {
   return (
     <>
       <Topbar title="Transactions" />
-      <div className="p-7 max-w-[1440px]">
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-4 sm:p-7 max-w-[1440px]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="text-sm font-semibold">Transaction Ledger</h3>
             <p className="text-xs text-gray-400">All parsed transactions from uploaded statements</p>
           </div>
-          <div className="flex gap-2">
-            <input className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-gray-50 w-56 focus:border-indigo-400 outline-none" placeholder="Search transactions..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
-            <select className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-gray-50" value={catFilter} onChange={(e) => { setCatFilter(e.target.value); setPage(0); }}>
+          <div className="flex flex-wrap gap-2">
+            <input className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-gray-50 w-full sm:w-56 focus:border-indigo-400 outline-none" placeholder="Search transactions..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+            <select className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-gray-50 flex-1 sm:flex-none" value={catFilter} onChange={(e) => { setCatFilter(e.target.value); setPage(0); }}>
               <option value="">All Categories</option>
               {categories.map((c) => <option key={c}>{c}</option>)}
             </select>
-            <select className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-gray-50" value={monthFilter} onChange={(e) => { setMonthFilter(e.target.value); setPage(0); }}>
+            <select className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-gray-50 flex-1 sm:flex-none" value={monthFilter} onChange={(e) => { setMonthFilter(e.target.value); setPage(0); }}>
               <option value="">All Months</option>
               {monthLabels.map((m) => <option key={m}>{m}</option>)}
             </select>

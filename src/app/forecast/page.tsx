@@ -5,11 +5,27 @@ import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ForecastChart } from '@/components/charts/ForecastChart';
+import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct, generateForecast } from '@/lib/calculations';
 import { INCOME, MONTHLY_BUDGET } from '@/lib/constants';
 
 export default function ForecastPage() {
   const { months } = useFinance();
+
+  if (months.length === 0) {
+    return (
+      <>
+        <Topbar title="Forecast" />
+        <div className="p-4 sm:p-7 max-w-[1440px]">
+          <EmptyState
+            title="No data to forecast yet"
+            description="Add at least one month of data to generate expense projections and scenarios."
+          />
+        </div>
+      </>
+    );
+  }
+
   const { projected, avgGrowth = 0, avgExpense = 0 } = generateForecast(months);
   const projSavings = projected.map((e) => INCOME - e);
   const avgSavingsRate = months.reduce((s, m) => s + m.savingsRate, 0) / months.length;
@@ -31,8 +47,8 @@ export default function ForecastPage() {
   return (
     <>
       <Topbar title="Forecast" />
-      <div className="p-7 max-w-[1440px]">
-        <div className="grid grid-cols-[2fr_1fr] gap-4 mb-6">
+      <div className="p-4 sm:p-7 max-w-[1440px]">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-6">
           <Card>
             <CardHeader action={<Badge variant="info">Linear Projection</Badge>}>6-Month Expense Forecast</CardHeader>
             <CardBody><ForecastChart months={months} /></CardBody>
@@ -53,7 +69,7 @@ export default function ForecastPage() {
         <Card>
           <CardHeader>Scenario Analysis</CardHeader>
           <CardBody>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {scenarios.map((s) => (
                 <div key={s.title} className={`bg-gray-50 rounded-xl p-5 text-center border ${s.border}`}>
                   <div className="text-sm font-semibold mb-1">{s.title}</div>

@@ -1,16 +1,34 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Topbar } from '@/components/Topbar';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
-const marketKpis = [
-  { icon: <span>🇸🇬</span>, iconBg: 'bg-indigo-50', label: 'STI Index', value: '3,842', trendText: '+2.1% YTD', trendClassName: 'text-emerald-600 bg-emerald-50' },
-  { icon: <span>🇺🇸</span>, iconBg: 'bg-emerald-50', label: 'S&P 500', value: '5,960', trendText: '+14.8% YTD', trendClassName: 'text-emerald-600 bg-emerald-50' },
-  { icon: <span>💱</span>, iconBg: 'bg-amber-50', label: 'USD/SGD', value: '1.3125', trendText: '-0.5% YTD', trendClassName: 'text-gray-400 bg-gray-100' },
-  { icon: <span>📉</span>, iconBg: 'bg-blue-50', label: 'SG 10Y Bond', value: '2.85%', trendText: '-35bps YTD', trendClassName: 'text-emerald-600 bg-emerald-50' },
-];
+interface QuotePoint {
+  value: number | null;
+  ytdPct: number | null;
+  live: boolean;
+}
+
+interface MarketResponse {
+  asOf: string;
+  sti: QuotePoint;
+  sp500: QuotePoint;
+  usdsgd: QuotePoint;
+  us10y: QuotePoint;
+}
+
+function trendClass(pct: number | null) {
+  if (pct == null) return 'text-gray-400 bg-gray-100';
+  return pct >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-500 bg-red-50';
+}
+
+function trendText(pct: number | null) {
+  if (pct == null) return '--';
+  return `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% YTD`;
+}
 
 const assets = [
   { asset: 'SG Equities', view: 'Neutral-Positive', viewType: 'success' as const, outlook: 'STI 3,800–4,100 range', relevance: 'DCA into STI ETF for long-term', signal: 'Accumulate', signalColor: 'text-emerald-600' },
@@ -22,25 +40,49 @@ const assets = [
 ];
 
 export default function MarketPage() {
+  const [data, setData] = useState<MarketResponse | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/market')
+      .then((res) => res.json())
+      .then(setData)
+      .catch(() => setError(true));
+  }, []);
+
+  const marketKpis = [
+    { icon: <span>🇸🇬</span>, iconBg: 'bg-indigo-50', label: 'STI Index', value: data?.sti.value != null ? data.sti.value.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—', trendText: trendText(data?.sti.ytdPct ?? null), trendClassName: trendClass(data?.sti.ytdPct ?? null) },
+    { icon: <span>🇺🇸</span>, iconBg: 'bg-emerald-50', label: 'S&P 500', value: data?.sp500.value != null ? data.sp500.value.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—', trendText: trendText(data?.sp500.ytdPct ?? null), trendClassName: trendClass(data?.sp500.ytdPct ?? null) },
+    { icon: <span>💱</span>, iconBg: 'bg-amber-50', label: 'USD/SGD', value: data?.usdsgd.value != null ? data.usdsgd.value.toFixed(4) : '—', trendText: trendText(data?.usdsgd.ytdPct ?? null), trendClassName: trendClass(data?.usdsgd.ytdPct ?? null) },
+    { icon: <span>📉</span>, iconBg: 'bg-blue-50', label: 'US 10Y Treasury', value: data?.us10y.value != null ? `${data.us10y.value.toFixed(2)}%` : '—', trendText: trendText(data?.us10y.ytdPct ?? null), trendClassName: trendClass(data?.us10y.ytdPct ?? null) },
+  ];
+
   return (
     <>
       <Topbar title="Market Outlook" />
-      <div className="p-7 max-w-[1440px]">
-        <div className="mb-4">
-          <h3 className="text-sm font-semibold">Market Overview</h3>
-          <p className="text-xs text-gray-400">Key indices and economic indicators for financial planning context</p>
+      <div className="p-4 sm:p-7 max-w-[1440px]">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <div>
+            <h3 className="text-sm font-semibold">Market Overview</h3>
+            <p className="text-xs text-gray-400">Key indices and economic indicators for financial planning context</p>
+          </div>
+          {data && (
+            <Badge variant={error ? 'warning' : 'success'}>
+              {error ? 'Data unavailable' : `Live · ${new Date(data.asOf).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}`}
+            </Badge>
+          )}
         </div>
 
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {marketKpis.map((k) => (
             <KpiCard key={k.label} {...k} />
           ))}
         </div>
 
         <Card className="mb-6">
-          <CardHeader action={<Badge variant="neutral">Jun 2026</Badge>}>Market Commentary</CardHeader>
+          <CardHeader action={<Badge variant="neutral">{new Date().toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}</Badge>}>Market Commentary</CardHeader>
           <CardBody>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <h4 className="text-sm font-semibold text-indigo-600 mb-2">Singapore Macro</h4>
                 <p className="text-[13px] text-gray-500 leading-relaxed">

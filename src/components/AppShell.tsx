@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { useFinance } from '@/lib/FinanceContext';
+import { SidebarProvider } from '@/lib/SidebarContext';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -25,9 +26,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 ml-[260px]">{children}</main>
-    </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <main className="flex-1 md:ml-[260px] min-w-0">{children}</main>
+      </div>
+    </SidebarProvider>
   );
 }

@@ -4,6 +4,7 @@ import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/EmptyState';
 import { generateInsights, generateActions } from '@/lib/calculations';
 
 const priorityVariant = {
@@ -25,16 +26,30 @@ export default function InsightsPage() {
   const insights = generateInsights(months);
   const actions = generateActions(months);
 
+  if (months.length === 0) {
+    return (
+      <>
+        <Topbar title="Insights" />
+        <div className="p-4 sm:p-7 max-w-[1440px]">
+          <EmptyState
+            title="No insights yet"
+            description="Upload an e-statement or add a month to generate personalized recommendations."
+          />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Topbar title="Insights" />
-      <div className="p-7 max-w-[1440px]">
+      <div className="p-4 sm:p-7 max-w-[1440px]">
         <div className="mb-4">
           <h3 className="text-sm font-semibold">Actionable Insights</h3>
           <p className="text-xs text-gray-400">AI-generated recommendations based on your spending patterns</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           {insights.map((insight, i) => (
             <div key={i} className={`bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow border-l-[3px] ${priorityBorder[insight.priority]}`}>
               <div className="flex items-center gap-2.5 mb-2">

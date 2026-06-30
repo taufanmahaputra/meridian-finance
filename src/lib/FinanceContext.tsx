@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { MonthData, Transaction } from '@/types/finance';
-import { seedMonths } from '@/data/seed';
 import { computeDerived } from '@/lib/calculations';
 import { createClient } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
@@ -20,7 +19,7 @@ interface FinanceState {
 const FinanceContext = createContext<FinanceState | null>(null);
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
-  const [months, setMonths] = useState<MonthData[]>(seedMonths);
+  const [months, setMonths] = useState<MonthData[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,20 +50,16 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
       ]);
 
-      if (monthsRes.data && monthsRes.data.length > 0) {
-        const loaded = monthsRes.data.map((row) =>
-          computeDerived({
-            label: row.label,
-            partial: row.partial,
-            income: Number(row.income),
-            expenses: Number(row.expenses),
-            cats: row.cats as Record<string, number>,
-          })
-        );
-        setMonths(loaded);
-      } else {
-        await seedUserData(userId);
-      }
+      const loaded = (monthsRes.data ?? []).map((row) =>
+        computeDerived({
+          label: row.label,
+          partial: row.partial,
+          income: Number(row.income),
+          expenses: Number(row.expenses),
+          cats: row.cats as Record<string, number>,
+        })
+      );
+      setMonths(loaded);
 
       if (txRes.data) {
         setTransactions(txRes.data.map((row) => ({
@@ -83,19 +78,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function seedUserData(userId: string) {
-    const rows = seedMonths.map((m) => ({
-      user_id: userId,
-      label: m.label,
-      partial: m.partial,
-      income: m.income,
-      expenses: m.expenses,
-      cats: m.cats,
-    }));
-    await supabase.from('months').insert(rows);
-    setMonths(seedMonths);
   }
 
   const addMonth = useCallback(async (month: MonthData) => {
@@ -136,7 +118,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setMonths(seedMonths);
+    setMonths([]);
     setTransactions([]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
