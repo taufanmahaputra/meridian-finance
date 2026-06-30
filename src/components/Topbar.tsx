@@ -34,7 +34,7 @@ export function Topbar({ title, onAddMonth }: TopbarProps) {
         <div className="min-w-0">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{title}</h2>
           <p className="text-xs text-gray-400 hidden sm:block">
-            Last updated: {new Date().toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' })}
+            Last updated: {new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
           </p>
         </div>
       </div>

@@ -17,7 +17,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct, getTrendData, getHealthScore } from '@/lib/calculations';
 
 export default function DashboardPage() {
-  const { months, addMonth, categories, catBudgets, catColors, monthlyBudget, income } = useFinance();
+  const { months, addMonth, categories, catBudgets, catColors, monthlyBudget, income, currency } = useFinance();
   const [modalOpen, setModalOpen] = useState(false);
   const [pieIdx, setPieIdx] = useState(months.length - 1);
 
@@ -32,7 +32,7 @@ export default function DashboardPage() {
             onAddMonth={() => setModalOpen(true)}
           />
         </div>
-        <AddMonthModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addMonth} categories={categories} catBudgets={catBudgets} defaultIncome={income} />
+        <AddMonthModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addMonth} categories={categories} catBudgets={catBudgets} defaultIncome={income} currency={currency} />
       </>
     );
   }
@@ -42,9 +42,9 @@ export default function DashboardPage() {
   const healthScore = getHealthScore(months);
 
   const kpis = [
-    { icon: <span>💰</span>, iconBg: 'bg-indigo-50', label: 'Net Savings', value: fmt(m.savings), ...getTrendData(m.savings, p?.savings ?? null) },
+    { icon: <span>💰</span>, iconBg: 'bg-indigo-50', label: 'Net Savings', value: fmt(m.savings, currency), ...getTrendData(m.savings, p?.savings ?? null) },
     { icon: <span>📊</span>, iconBg: 'bg-emerald-50', label: 'Savings Rate', value: fmtPct(m.savingsRate), ...getTrendData(m.savingsRate, p?.savingsRate ?? null) },
-    { icon: <span>💳</span>, iconBg: 'bg-red-50', label: 'Total Expenses', value: fmt(m.expenses), ...getTrendData(m.expenses, p?.expenses ?? null, true) },
+    { icon: <span>💳</span>, iconBg: 'bg-red-50', label: 'Total Expenses', value: fmt(m.expenses, currency), ...getTrendData(m.expenses, p?.expenses ?? null, true) },
     { icon: <span>📈</span>, iconBg: 'bg-amber-50', label: 'Budget Util.', value: fmtPct(m.budgetUtil), ...getTrendData(m.budgetUtil, p?.budgetUtil ?? null, true) },
   ];
 
@@ -52,7 +52,7 @@ export default function DashboardPage() {
     { label: 'Savings Rate', val: fmtPct(m.savingsRate), variant: (m.savingsRate >= 40 ? 'success' : m.savingsRate >= 20 ? 'warning' : 'danger') as 'success' | 'warning' | 'danger' },
     { label: 'Budget Adherence', val: fmtPct(m.budgetUtil), variant: (m.budgetUtil <= 100 ? 'success' : m.budgetUtil <= 120 ? 'warning' : 'danger') as 'success' | 'warning' | 'danger' },
     { label: 'Over-Budget Cats', val: String(m.overBudgetCats), variant: (m.overBudgetCats <= 1 ? 'success' : m.overBudgetCats <= 3 ? 'warning' : 'danger') as 'success' | 'warning' | 'danger' },
-    { label: 'Monthly Income', val: fmt(m.income), variant: 'success' as const },
+    { label: 'Monthly Income', val: fmt(m.income, currency), variant: 'success' as const },
   ];
 
   return (
@@ -117,13 +117,13 @@ export default function DashboardPage() {
                   {months.map((mo) => (
                     <tr key={mo.label} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3 font-semibold">{mo.label} {mo.partial && <Badge variant="warning" className="ml-1 text-[9px]">Partial</Badge>}</td>
-                      <td className="px-4 py-3">{fmt(mo.income)}</td>
-                      <td className="px-4 py-3 font-semibold">{fmt(mo.expenses)}</td>
-                      <td className={`px-4 py-3 font-semibold ${mo.savings >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmt(mo.savings)}</td>
+                      <td className="px-4 py-3">{fmt(mo.income, currency)}</td>
+                      <td className="px-4 py-3 font-semibold">{fmt(mo.expenses, currency)}</td>
+                      <td className={`px-4 py-3 font-semibold ${mo.savings >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmt(mo.savings, currency)}</td>
                       <td className="px-4 py-3"><Badge variant={mo.savingsRate >= 40 ? 'success' : mo.savingsRate >= 20 ? 'warning' : 'danger'}>{fmtPct(mo.savingsRate)}</Badge></td>
                       <td className="px-4 py-3"><Badge variant={mo.budgetUtil <= 100 ? 'success' : mo.budgetUtil <= 120 ? 'warning' : 'danger'}>{fmtPct(mo.budgetUtil)}</Badge></td>
                       <td className={`px-4 py-3 font-semibold ${mo.overBudgetCats > 3 ? 'text-red-500' : mo.overBudgetCats > 1 ? 'text-amber-600' : 'text-emerald-600'}`}>{mo.overBudgetCats}</td>
-                      <td className="px-4 py-3">{fmt(mo.avgDaily)}</td>
+                      <td className="px-4 py-3">{fmt(mo.avgDaily, currency)}</td>
                       <td className="px-4 py-3">
                         <Link href={`/monthly?m=${encodeURIComponent(mo.label)}`} className="inline-flex items-center gap-0.5 text-indigo-600 font-medium hover:text-indigo-700">
                           Details <ChevronRight className="w-3.5 h-3.5" />
@@ -137,7 +137,7 @@ export default function DashboardPage() {
           </CardBody>
         </Card>
       </div>
-      <AddMonthModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addMonth} categories={categories} catBudgets={catBudgets} defaultIncome={income} />
+      <AddMonthModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addMonth} categories={categories} catBudgets={catBudgets} defaultIncome={income} currency={currency} />
     </>
   );
 }

@@ -12,7 +12,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct, getTrendData } from '@/lib/calculations';
 
 function MonthlyDetailContent() {
-  const { months, transactions, catBudgets, catColors } = useFinance();
+  const { months, transactions, catBudgets, catColors, currency } = useFinance();
   const searchParams = useSearchParams();
   const requested = searchParams.get('m');
   const [selected, setSelected] = useState<string | null>(null);
@@ -42,9 +42,9 @@ function MonthlyDetailContent() {
   }
 
   const kpis = [
-    { icon: <span>💰</span>, iconBg: 'bg-indigo-50', label: 'Net Savings', value: fmt(m.savings), ...getTrendData(m.savings, p?.savings ?? null) },
+    { icon: <span>💰</span>, iconBg: 'bg-indigo-50', label: 'Net Savings', value: fmt(m.savings, currency), ...getTrendData(m.savings, p?.savings ?? null) },
     { icon: <span>📊</span>, iconBg: 'bg-emerald-50', label: 'Savings Rate', value: fmtPct(m.savingsRate), ...getTrendData(m.savingsRate, p?.savingsRate ?? null) },
-    { icon: <span>💳</span>, iconBg: 'bg-red-50', label: 'Total Expenses', value: fmt(m.expenses), ...getTrendData(m.expenses, p?.expenses ?? null, true) },
+    { icon: <span>💳</span>, iconBg: 'bg-red-50', label: 'Total Expenses', value: fmt(m.expenses, currency), ...getTrendData(m.expenses, p?.expenses ?? null, true) },
     { icon: <span>📈</span>, iconBg: 'bg-amber-50', label: 'Budget Util.', value: fmtPct(m.budgetUtil), ...getTrendData(m.budgetUtil, p?.budgetUtil ?? null, true) },
   ];
 
@@ -108,8 +108,8 @@ function MonthlyDetailContent() {
                           <span className="inline-block w-2 h-2 rounded-sm mr-2" style={{ backgroundColor: catColors[r.cat] || '#6b7280' }}></span>
                           {r.cat}
                         </td>
-                        <td className="px-4 py-2.5 font-semibold">{fmt(r.spent, 2)}</td>
-                        <td className="px-4 py-2.5 text-gray-500">{r.budget ? fmt(r.budget) : '—'}</td>
+                        <td className="px-4 py-2.5 font-semibold">{fmt(r.spent, currency, 2)}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{r.budget ? fmt(r.budget, currency) : '—'}</td>
                         <td className="px-4 py-2.5">{r.pctUsed != null ? fmtPct(r.pctUsed) : '—'}</td>
                         <td className={`px-4 py-2.5 text-xs ${r.mom == null ? 'text-gray-400' : r.mom > 0 ? 'text-red-500' : 'text-emerald-600'}`}>{r.mom != null ? `${r.mom > 0 ? '+' : ''}${r.mom.toFixed(0)}%` : '—'}</td>
                       </tr>
@@ -138,7 +138,7 @@ function MonthlyDetailContent() {
                     <tr key={t.id ?? i} className="border-b border-gray-100 hover:bg-gray-50/50">
                       <td className="px-4 py-2.5 text-gray-500">{t.date}</td>
                       <td className="px-4 py-2.5">{t.description}</td>
-                      <td className={`px-4 py-2.5 font-semibold ${t.type === 'Income' ? 'text-emerald-600' : ''}`}>{t.type === 'Income' ? '+' : '-'}{fmt(t.amount, 2)}</td>
+                      <td className={`px-4 py-2.5 font-semibold ${t.type === 'Income' ? 'text-emerald-600' : ''}`}>{t.type === 'Income' ? '+' : '-'}{fmt(t.amount, currency, 2)}</td>
                       <td className="px-4 py-2.5"><Badge variant={t.type === 'Income' ? 'success' : 'info'}>{t.category}</Badge></td>
                       <td className="px-4 py-2.5 text-gray-500">{t.type}</td>
                     </tr>

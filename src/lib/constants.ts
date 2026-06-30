@@ -25,3 +25,21 @@ export const DEFAULT_CATEGORIES: Category[] = [
 export function nextChartColor(usedColors: string[]): string {
   return CHART_COLORS.find((c) => !usedColors.includes(c)) || CHART_COLORS[usedColors.length % CHART_COLORS.length];
 }
+
+export interface CurrencyMeta {
+  code: string;
+  symbol: string;
+  label: string;
+}
+
+export const CURRENCIES: CurrencyMeta[] = [
+  { code: 'IDR', symbol: 'Rp', label: 'Indonesian Rupiah' },
+  { code: 'USD', symbol: '$', label: 'US Dollar' },
+  { code: 'SGD', symbol: 'S$', label: 'Singapore Dollar' },
+];
+
+export const DEFAULT_CURRENCY = 'IDR';
+
+export const CURRENCY_SYMBOLS: Record<string, string> = Object.fromEntries(
+  CURRENCIES.map((c) => [c.code, c.symbol])
+);

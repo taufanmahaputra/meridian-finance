@@ -32,18 +32,18 @@ function ytdChange(meta: YahooMeta | null): number | null {
 }
 
 export async function GET() {
-  const [sti, sp500, usdsgd, us10y] = await Promise.all([
-    fetchQuote('^STI'),
+  const [ihsg, usdidr, sp500, us10y] = await Promise.all([
+    fetchQuote('^JKSE'),
+    fetchQuote('IDR=X'),
     fetchQuote('^GSPC'),
-    fetchQuote('SGD=X'),
     fetchQuote('^TNX'),
   ]);
 
   return NextResponse.json({
     asOf: new Date().toISOString(),
-    sti: { value: sti?.regularMarketPrice ?? null, ytdPct: ytdChange(sti), live: !!sti },
+    ihsg: { value: ihsg?.regularMarketPrice ?? null, ytdPct: ytdChange(ihsg), live: !!ihsg },
+    usdidr: { value: usdidr?.regularMarketPrice ?? null, ytdPct: ytdChange(usdidr), live: !!usdidr },
     sp500: { value: sp500?.regularMarketPrice ?? null, ytdPct: ytdChange(sp500), live: !!sp500 },
-    usdsgd: { value: usdsgd?.regularMarketPrice ?? null, ytdPct: ytdChange(usdsgd), live: !!usdsgd },
     us10y: { value: us10y?.regularMarketPrice ?? null, ytdPct: ytdChange(us10y), live: !!us10y },
   });
 }

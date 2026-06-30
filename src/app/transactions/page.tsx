@@ -11,7 +11,7 @@ import type { Transaction } from '@/types/finance';
 const PER_PAGE = 25;
 
 export default function TransactionsPage() {
-  const { months, transactions } = useFinance();
+  const { months, transactions, currency } = useFinance();
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
@@ -73,7 +73,7 @@ export default function TransactionsPage() {
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="bg-gray-50">
-                    {['Date', 'Description', 'Amount (SGD)', 'Category', 'Type'].map((h) => (
+                    {['Date', 'Description', `Amount (${currency})`, 'Category', 'Type'].map((h) => (
                       <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
                     ))}
                   </tr>
@@ -84,7 +84,7 @@ export default function TransactionsPage() {
                       <td className="px-4 py-2.5 text-gray-500">{t.date}</td>
                       <td className="px-4 py-2.5">{t.description}</td>
                       <td className={`px-4 py-2.5 font-semibold ${t.type === 'Income' ? 'text-emerald-600' : ''}`}>
-                        {t.type === 'Income' ? '+' : '-'}{fmt(t.amount, 2)}
+                        {t.type === 'Income' ? '+' : '-'}{fmt(t.amount, currency, 2)}
                       </td>
                       <td className="px-4 py-2.5"><Badge variant={t.type === 'Income' ? 'success' : 'info'}>{t.category}</Badge></td>
                       <td className="px-4 py-2.5 text-gray-500">{t.type}</td>

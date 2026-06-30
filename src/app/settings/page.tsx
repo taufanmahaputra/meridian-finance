@@ -6,12 +6,14 @@ import { Trash2, Plus, AlertTriangle } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { CURRENCIES, CURRENCY_SYMBOLS } from '@/lib/constants';
 
 export default function SettingsPage() {
-  const { categories, addCategory, updateCategory, deleteCategory, income, updateIncome, clearAllData } = useFinance();
+  const { categories, addCategory, updateCategory, deleteCategory, income, updateIncome, currency, updateCurrency, clearAllData } = useFinance();
   const router = useRouter();
 
   const [incomeInput, setIncomeInput] = useState(income.toString());
+  const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
   const [newCatName, setNewCatName] = useState('');
   const [newCatBudget, setNewCatBudget] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -45,18 +47,34 @@ export default function SettingsPage() {
       <Topbar title="Settings" />
       <div className="p-4 sm:p-7 max-w-[900px] space-y-6">
         <Card>
-          <CardHeader>Monthly Income</CardHeader>
+          <CardHeader>Currency & Income</CardHeader>
           <CardBody>
-            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Default Income (SGD)</label>
-            <input
-              className="w-full sm:w-64 px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
-              type="number"
-              value={incomeInput}
-              onChange={(e) => setIncomeInput(e.target.value)}
-              onBlur={handleIncomeBlur}
-              placeholder="0"
-            />
-            <p className="text-xs text-gray-400 mt-2">Used as the default income when adding a new month or importing a statement without income transactions.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Currency</label>
+                <select
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  value={currency}
+                  onChange={(e) => updateCurrency(e.target.value)}
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Default Income ({currencySymbol})</label>
+                <input
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  type="number"
+                  value={incomeInput}
+                  onChange={(e) => setIncomeInput(e.target.value)}
+                  onBlur={handleIncomeBlur}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-3">Currency controls how all amounts are displayed across the app. Income is used as the default when adding a new month or importing a statement without income transactions.</p>
           </CardBody>
         </Card>
 
@@ -76,7 +94,7 @@ export default function SettingsPage() {
                     }}
                   />
                   <div className="flex items-center gap-1 text-sm text-gray-400">
-                    <span>$</span>
+                    <span>{currencySymbol}</span>
                     <input
                       className="w-24 px-2 py-1.5 text-sm border border-transparent rounded-md hover:border-gray-200 focus:border-indigo-400 focus:bg-gray-50 outline-none text-right"
                       type="number"

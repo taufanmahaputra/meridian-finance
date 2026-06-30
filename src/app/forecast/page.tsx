@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct, generateForecast } from '@/lib/calculations';
 
 export default function ForecastPage() {
-  const { months, income, monthlyBudget } = useFinance();
+  const { months, income, monthlyBudget, currency } = useFinance();
 
   if (months.length === 0) {
     return (
@@ -31,17 +31,17 @@ export default function ForecastPage() {
   const avgSavingsRate = months.reduce((s, m) => s + m.savingsRate, 0) / months.length;
 
   const metrics = [
-    { label: 'Avg Monthly Expense (Projected)', value: fmt(projected.reduce((a, b) => a + b, 0) / 6), color: '' },
-    { label: 'Projected Final Month Expense', value: fmt(projected[5] || 0), color: (projected[5] || 0) > monthlyBudget ? 'text-red-500' : 'text-emerald-600' },
-    { label: 'Projected 6-Month Savings', value: fmt(projSavings.reduce((a, b) => a + b, 0)), color: 'text-emerald-600' },
+    { label: 'Avg Monthly Expense (Projected)', value: fmt(projected.reduce((a, b) => a + b, 0) / 6, currency), color: '' },
+    { label: 'Projected Final Month Expense', value: fmt(projected[5] || 0, currency), color: (projected[5] || 0) > monthlyBudget ? 'text-red-500' : 'text-emerald-600' },
+    { label: 'Projected 6-Month Savings', value: fmt(projSavings.reduce((a, b) => a + b, 0), currency), color: 'text-emerald-600' },
     { label: 'Current Savings Trend', value: fmtPct(avgSavingsRate), color: avgSavingsRate >= 40 ? 'text-emerald-600' : 'text-amber-600' },
-    { label: 'Monthly Growth Rate', value: `${avgGrowth >= 0 ? '+' : ''}${fmt(avgGrowth)}/mo`, color: avgGrowth > 0 ? 'text-red-500' : 'text-emerald-600' },
+    { label: 'Monthly Growth Rate', value: `${avgGrowth >= 0 ? '+' : ''}${fmt(avgGrowth, currency)}/mo`, color: avgGrowth > 0 ? 'text-red-500' : 'text-emerald-600' },
   ];
 
   const scenarios = [
-    { title: 'Conservative', desc: 'Reduce discretionary by 20%', savings: fmt((effectiveIncome - avgExpense * 0.8) * 6), color: 'text-emerald-600', border: 'border-emerald-200' },
-    { title: 'Status Quo', desc: 'Continue current trend', savings: fmt(projSavings.reduce((a, b) => a + b, 0)), color: 'text-amber-600', border: 'border-amber-200' },
-    { title: 'Aggressive Growth', desc: 'Expenses grow 10% more', savings: fmt((effectiveIncome - avgExpense * 1.1) * 6), color: 'text-red-500', border: 'border-red-200' },
+    { title: 'Conservative', desc: 'Reduce discretionary by 20%', savings: fmt((effectiveIncome - avgExpense * 0.8) * 6, currency), color: 'text-emerald-600', border: 'border-emerald-200' },
+    { title: 'Status Quo', desc: 'Continue current trend', savings: fmt(projSavings.reduce((a, b) => a + b, 0), currency), color: 'text-amber-600', border: 'border-amber-200' },
+    { title: 'Aggressive Growth', desc: 'Expenses grow 10% more', savings: fmt((effectiveIncome - avgExpense * 1.1) * 6, currency), color: 'text-red-500', border: 'border-red-200' },
   ];
 
   return (

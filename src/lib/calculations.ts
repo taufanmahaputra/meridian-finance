@@ -1,4 +1,5 @@
 import type { MonthData, Insight, ActionItem } from '@/types/finance';
+import { CURRENCY_SYMBOLS, DEFAULT_CURRENCY } from './constants';
 
 export function computeDerived(
   m: Partial<MonthData> & { income: number; expenses: number; cats: Record<string, number>; partial: boolean; label: string },
@@ -65,23 +66,25 @@ export function getTrendData(curr: number, prev: number | null, inverse = false)
   };
 }
 
-export function fmt(n: number, decimals = 0): string {
+export function fmt(n: number, currency: string = DEFAULT_CURRENCY, decimals = 0): string {
+  const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
   const abs = Math.abs(n);
   const formatted = abs.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
-  return n < 0 ? `-$${formatted}` : `$${formatted}`;
+  return n < 0 ? `-${symbol}${formatted}` : `${symbol}${formatted}`;
 }
 
 export function fmtPct(n: number): string {
   return `${n.toFixed(1)}%`;
 }
 
-export function generateInsights(months: MonthData[], catBudgets: Record<string, number> = {}): Insight[] {
+export function generateInsights(months: MonthData[], catBudgets: Record<string, number> = {}, currency: string = DEFAULT_CURRENCY): Insight[] {
   if (months.length === 0) return [];
   const m = months[months.length - 1];
   const insights: Insight[] = [];
+  const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
 
   if (months.length >= 3) {
     const rates = months.slice(-3).map((x) => x.savingsRate);
@@ -101,7 +104,7 @@ export function generateInsights(months: MonthData[], catBudgets: Record<string,
     insights.push({
       priority: 'high',
       title: 'Travel Has No Budget Allocated',
-      body: `Travel spending averages <strong>${fmt(avgTravel)}/month</strong>. This unbudgeted category drives most budget overruns. Allocating $500–700 would fix several over-budget flags.`,
+      body: `Travel spending averages <strong>${fmt(avgTravel, currency)}/month</strong>. This unbudgeted category drives most budget overruns. Allocating ${symbol}500–700 would fix several over-budget flags.`,
     });
   }
 
@@ -110,7 +113,7 @@ export function generateInsights(months: MonthData[], catBudgets: Record<string,
     insights.push({
       priority: 'medium',
       title: 'Installments Are Predictable Fixed Costs',
-      body: `Monthly installments at <strong>${fmt(installments)}</strong> are recurring obligations, not discretionary spending. Track them separately.`,
+      body: `Monthly installments at <strong>${fmt(installments, currency)}</strong> are recurring obligations, not discretionary spending. Track them separately.`,
     });
   }
 
@@ -120,7 +123,7 @@ export function generateInsights(months: MonthData[], catBudgets: Record<string,
       insights.push({
         priority: 'medium',
         title: `${cat} Significantly Over Budget`,
-        body: `<strong>${fmt(spent)}</strong> spent vs <strong>${fmt(budget)}</strong> budget (${((spent / budget) * 100).toFixed(0)}%). Consider adjusting your budget to reflect reality.`,
+        body: `<strong>${fmt(spent, currency)}</strong> spent vs <strong>${fmt(budget, currency)}</strong> budget (${((spent / budget) * 100).toFixed(0)}%). Consider adjusting your budget to reflect reality.`,
       });
     }
   });
@@ -131,7 +134,7 @@ export function generateInsights(months: MonthData[], catBudgets: Record<string,
     insights.push({
       priority: 'low',
       title: 'Food & Groceries Well Managed',
-      body: `Spending at <strong>${fmt(food)}</strong> — well under the <strong>${fmt(foodBudget)}</strong> budget. Consider reducing delivery frequency for additional savings.`,
+      body: `Spending at <strong>${fmt(food, currency)}</strong> — well under the <strong>${fmt(foodBudget, currency)}</strong> budget. Consider reducing delivery frequency for additional savings.`,
     });
   }
 
@@ -140,39 +143,40 @@ export function generateInsights(months: MonthData[], catBudgets: Record<string,
   insights.push({
     priority: 'info',
     title: `Housing at ${housingPct.toFixed(0)}% of Income`,
-    body: `Rent at <strong>${fmt(housing)}</strong> is ${housingPct < 30 ? 'within' : 'above'} the 30% benchmark. ${housingPct < 30 ? 'You\'re in a healthy range.' : 'Consider ways to reduce housing costs.'}`,
+    body: `Rent at <strong>${fmt(housing, currency)}</strong> is ${housingPct < 30 ? 'within' : 'above'} the 30% benchmark. ${housingPct < 30 ? 'You\'re in a healthy range.' : 'Consider ways to reduce housing costs.'}`,
   });
 
   return insights;
 }
 
-export function generateActions(months: MonthData[], catBudgets: Record<string, number> = {}): ActionItem[] {
+export function generateActions(months: MonthData[], catBudgets: Record<string, number> = {}, currency: string = DEFAULT_CURRENCY): ActionItem[] {
   if (months.length === 0) return [];
   const actions: ActionItem[] = [];
   const m = months[months.length - 1];
+  const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
 
   const avgTravel = months.reduce((s, x) => s + (x.cats['Travel'] || 0), 0) / months.length;
   if (avgTravel > 100 && (catBudgets['Travel'] || 0) === 0) {
-    actions.push({ title: `Set Travel budget at $${Math.round(avgTravel / 100) * 100}/mo`, detail: `You've averaged ${fmt(avgTravel)}/mo on travel. Allocating a budget eliminates most over-budget flags.` });
+    actions.push({ title: `Set Travel budget at ${symbol}${Math.round(avgTravel / 100) * 100}/mo`, detail: `You've averaged ${fmt(avgTravel, currency)}/mo on travel. Allocating a budget eliminates most over-budget flags.` });
   }
 
   const installments = m.cats['Installments'] || 0;
   if (installments > 0) {
-    actions.push({ title: `Create Installments budget line (${fmt(installments)}/mo)`, detail: 'Installments are predictable. Tracking them separately prevents confusion with discretionary spending.' });
+    actions.push({ title: `Create Installments budget line (${fmt(installments, currency)}/mo)`, detail: 'Installments are predictable. Tracking them separately prevents confusion with discretionary spending.' });
   }
 
   Object.entries(m.cats).forEach(([cat, spent]) => {
     const budget = catBudgets[cat] || 0;
     if (budget > 0 && spent > budget * 1.5) {
-      actions.push({ title: `Adjust ${cat} budget to ${fmt(Math.ceil(spent / 50) * 50)}`, detail: `Current budget of ${fmt(budget)} is consistently exceeded (${fmt(spent)} this month). Update to reflect actual spending.` });
+      actions.push({ title: `Adjust ${cat} budget to ${fmt(Math.ceil(spent / 50) * 50, currency)}`, detail: `Current budget of ${fmt(budget, currency)} is consistently exceeded (${fmt(spent, currency)} this month). Update to reflect actual spending.` });
     }
   });
 
   if (m.savingsRate > 30) {
-    actions.push({ title: 'Automate savings transfer on salary day', detail: `Transfer $${Math.round(m.savings / 500) * 500} to a separate savings account on the 1st of each month.` });
+    actions.push({ title: 'Automate savings transfer on salary day', detail: `Transfer ${symbol}${Math.round(m.savings / 500) * 500} to a separate savings account on the 1st of each month.` });
   }
 
-  actions.push({ title: 'Build 6-month emergency fund', detail: `Target: ${fmt(m.expenses * 6)}. Allocate monthly until reached, then redirect to investments.` });
+  actions.push({ title: 'Build 6-month emergency fund', detail: `Target: ${fmt(m.expenses * 6, currency)}. Allocate monthly until reached, then redirect to investments.` });
 
   return actions;
 }

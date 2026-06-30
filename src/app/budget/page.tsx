@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct } from '@/lib/calculations';
 
 export default function BudgetPage() {
-  const { months, categories, catBudgets, catColors } = useFinance();
+  const { months, categories, catBudgets, catColors, currency } = useFinance();
 
   if (months.length === 0) {
     return (
@@ -32,7 +32,7 @@ export default function BudgetPage() {
   const anomalies: { msg: string; severity: 'danger' | 'warning' }[] = [];
   Object.entries(m.cats).forEach(([cat, spent]) => {
     const prev = p?.cats?.[cat] || 0;
-    if (prev > 0 && spent > prev * 2) anomalies.push({ msg: `${cat} spiked ${((spent / prev - 1) * 100).toFixed(0)}% (${fmt(prev)} → ${fmt(spent)})`, severity: 'danger' });
+    if (prev > 0 && spent > prev * 2) anomalies.push({ msg: `${cat} spiked ${((spent / prev - 1) * 100).toFixed(0)}% (${fmt(prev, currency)} → ${fmt(spent, currency)})`, severity: 'danger' });
     const budget = catBudgets[cat] || 0;
     if (budget > 0 && spent > budget * 1.5) anomalies.push({ msg: `${cat} is ${fmtPct((spent / budget) * 100)} of budget (${fmt(spent)} vs ${fmt(budget)})`, severity: 'warning' });
   });
@@ -82,9 +82,9 @@ export default function BudgetPage() {
                             <span className="inline-block w-2 h-2 rounded-sm mr-2" style={{ backgroundColor: catColors[cat] || '#6b7280' }}></span>
                             <strong>{cat}</strong>
                           </td>
-                          <td className="px-4 py-2.5">{budget ? fmt(budget) : '—'}</td>
-                          <td className="px-4 py-2.5 font-semibold">{fmt(spent, 2)}</td>
-                          <td className={`px-4 py-2.5 font-medium ${variance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{budget ? fmt(variance) : '—'}</td>
+                          <td className="px-4 py-2.5">{budget ? fmt(budget, currency) : '—'}</td>
+                          <td className="px-4 py-2.5 font-semibold">{fmt(spent, currency, 2)}</td>
+                          <td className={`px-4 py-2.5 font-medium ${variance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{budget ? fmt(variance, currency) : '—'}</td>
                           <td className="px-4 py-2.5">{pctUsed != null ? fmtPct(pctUsed) : '—'}</td>
                           <td className={`px-4 py-2.5 text-xs ${mom == null ? 'text-gray-400' : mom > 0 ? 'text-red-500' : 'text-emerald-600'}`}>{mom != null ? `${mom > 0 ? '+' : ''}${mom.toFixed(0)}%` : '—'}</td>
                           <td className="px-4 py-2.5"><Badge variant={status as 'success' | 'warning' | 'danger' | 'neutral'}>{statusLabel}</Badge></td>

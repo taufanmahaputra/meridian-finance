@@ -8,9 +8,10 @@ import { Badge } from '@/components/ui/Badge';
 import { Upload, AlertTriangle } from 'lucide-react';
 import Papa from 'papaparse';
 import type { Transaction } from '@/types/finance';
+import { fmt } from '@/lib/calculations';
 
 export default function UploadPage() {
-  const { months, importMonth } = useFinance();
+  const { months, importMonth, currency } = useFinance();
   const [parsed, setParsed] = useState<Transaction[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [imported, setImported] = useState(false);
@@ -101,11 +102,11 @@ export default function UploadPage() {
             <p className="text-xs text-gray-500 mb-3">Your CSV should have columns similar to your Google Sheets budget tracker:</p>
             <div className="bg-gray-50 rounded-lg p-4 font-mono text-xs overflow-x-auto">
               <div className="text-gray-400"># Header row:</div>
-              <div>Date, Name / Description, Amount (SGD), Category, Type</div>
+              <div>Date, Name / Description, Amount ({currency}), Category, Type</div>
               <div className="text-gray-400 mt-2"># Example rows:</div>
-              <div>04/04/2026, SEPHORA - MBS, 80.00, Shopping, Expense</div>
-              <div>05/04/2026, SHENG SIONG SUPERMARKE, 56.30, Food &amp; Groceries, Expense</div>
-              <div>01/04/2025, Salary, 13333.00, Savings, Income</div>
+              <div>04/04/2026, INDOMARET, 80000, Shopping, Expense</div>
+              <div>05/04/2026, TOKOPEDIA - GROCERIES, 256300, Food &amp; Groceries, Expense</div>
+              <div>01/04/2025, Gaji, 15000000, Income, Income</div>
             </div>
           </CardBody>
         </Card>
@@ -149,7 +150,7 @@ export default function UploadPage() {
                 <div className="flex items-start gap-2 px-3.5 py-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 mb-3">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <span>
-                    <strong>{existingMonth.label}</strong> already has data ({existingMonth.cats ? Object.values(existingMonth.cats).filter((v) => v > 0).length : 0} categories, {existingMonth.expenses ? `$${existingMonth.expenses.toLocaleString()}` : '$0'} in expenses). Importing will <strong>replace</strong> that month&apos;s transactions and totals.
+                    <strong>{existingMonth.label}</strong> already has data ({existingMonth.cats ? Object.values(existingMonth.cats).filter((v) => v > 0).length : 0} categories, {fmt(existingMonth.expenses || 0, currency)} in expenses). Importing will <strong>replace</strong> that month&apos;s transactions and totals.
                   </span>
                 </div>
               )}
@@ -187,7 +188,7 @@ export default function UploadPage() {
                       <tr key={i} className="border-b border-gray-100">
                         <td className="px-4 py-2.5 text-gray-500">{t.date}</td>
                         <td className="px-4 py-2.5">{t.description}</td>
-                        <td className="px-4 py-2.5 font-semibold">${t.amount.toFixed(2)}</td>
+                        <td className="px-4 py-2.5 font-semibold">{fmt(t.amount, currency, 2)}</td>
                         <td className="px-4 py-2.5"><Badge variant="info">{t.category}</Badge></td>
                         <td className="px-4 py-2.5 text-gray-500">{t.type}</td>
                       </tr>

@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, t
 import type { MonthData, Transaction, Category } from '@/types/finance';
 import { computeDerived } from '@/lib/calculations';
 import { createClient } from '@/lib/supabase';
-import { DEFAULT_CATEGORIES, nextChartColor } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, DEFAULT_CURRENCY, nextChartColor } from '@/lib/constants';
 import type { User } from '@supabase/supabase-js';
 
 interface FinanceState {
@@ -15,6 +15,7 @@ interface FinanceState {
   catColors: Record<string, string>;
   monthlyBudget: number;
   income: number;
+  currency: string;
   user: User | null;
   loading: boolean;
   addMonth: (month: MonthData) => void;
@@ -23,6 +24,7 @@ interface FinanceState {
   updateCategory: (id: string, updates: Partial<Pick<Category, 'name' | 'budget' | 'color'>>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   updateIncome: (income: number) => Promise<void>;
+  updateCurrency: (currency: string) => Promise<void>;
   clearAllData: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -34,6 +36,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [income, setIncome] = useState(0);
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -55,7 +58,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         supabase.from('months').select('*').eq('user_id', userId).order('created_at'),
         supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
         supabase.from('categories').select('*').eq('user_id', userId).order('created_at'),
-        supabase.from('profiles').select('monthly_income').eq('id', userId).single(),
+        supabase.from('profiles').select('monthly_income, currency').eq('id', userId).single(),
       ]);
 
       let cats = catRes.data ?? [];
@@ -96,6 +99,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       }
 
       setIncome(Number(profileRes.data?.monthly_income) || 0);
+      setCurrency(profileRes.data?.currency || DEFAULT_CURRENCY);
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
@@ -228,6 +232,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  const updateCurrency = useCallback(async (newCurrency: string) => {
+    setCurrency(newCurrency);
+    if (user) {
+      await supabase.from('profiles').update({ currency: newCurrency }).eq('id', user.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const clearAllData = useCallback(async () => {
     setMonths([]);
     setTransactions([]);
@@ -247,13 +259,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setTransactions([]);
     setCategories([]);
     setIncome(0);
+    setCurrency(DEFAULT_CURRENCY);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <FinanceContext.Provider value={{
-      months, transactions, categories, catBudgets, catColors, monthlyBudget, income, user, loading,
-      addMonth, importMonth, addCategory, updateCategory, deleteCategory, updateIncome, clearAllData, signOut,
+      months, transactions, categories, catBudgets, catColors, monthlyBudget, income, currency, user, loading,
+      addMonth, importMonth, addCategory, updateCategory, deleteCategory, updateIncome, updateCurrency, clearAllData, signOut,
     }}>
       {children}
     </FinanceContext.Provider>

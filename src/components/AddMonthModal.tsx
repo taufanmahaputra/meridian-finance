@@ -12,9 +12,10 @@ interface Props {
   categories: Category[];
   catBudgets: Record<string, number>;
   defaultIncome: number;
+  currency: string;
 }
 
-export function AddMonthModal({ open, onClose, onAdd, categories, catBudgets, defaultIncome }: Props) {
+export function AddMonthModal({ open, onClose, onAdd, categories, catBudgets, defaultIncome, currency }: Props) {
   const [label, setLabel] = useState('');
   const [income, setIncome] = useState(defaultIncome.toString());
   const [expenses, setExpenses] = useState('');
@@ -71,7 +72,7 @@ export function AddMonthModal({ open, onClose, onAdd, categories, catBudgets, de
               <input className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Jul 2026" required />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Income (SGD)</label>
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Income ({currency})</label>
               <input className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none" type="number" value={income} onChange={(e) => setIncome(e.target.value)} />
             </div>
           </div>
