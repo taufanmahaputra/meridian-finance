@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient } from '@/lib/supabase';
+import { OlahDanaMark } from '@/components/logos/OlahDanaMark';
 
 export default function LoginPage() {
   const supabase = createClient();
@@ -18,8 +19,10 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="brand-mark w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-bold mx-auto mb-3">O</div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">OlahDana</h1>
+          <div className="brand-mark w-12 h-12 rounded-xl flex items-center justify-center text-white p-2.5 mx-auto mb-3">
+            <OlahDanaMark className="w-full h-full" />
+          </div>
+          <h1 className="font-geist text-2xl font-semibold text-gray-900 tracking-tight">OlahDana</h1>
           <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[.2em] mt-1">All-In-One Financial Platform</p>
         </div>
 

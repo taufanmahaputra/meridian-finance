@@ -13,6 +13,9 @@ import { useSidebar } from '@/lib/SidebarContext';
 import { useFinance } from '@/lib/FinanceContext';
 import { ADMIN_EMAIL } from '@/lib/constants';
 import { BetaAccessModal } from '@/components/BetaAccessModal';
+import { OlahDanaMark } from '@/components/logos/OlahDanaMark';
+import { OlahAturMark } from '@/components/logos/OlahAturMark';
+import { OlahSahamMark } from '@/components/logos/OlahSahamMark';
 
 const olahAturSections = [
   {
@@ -59,20 +62,20 @@ const MODULES = [
     id: 'atur',
     nameKey: 'nav.module.olahatur',
     descKey: 'nav.module.olahaturDesc',
-    icon: LayoutGrid,
+    icon: OlahAturMark,
     home: '/dashboard',
-    chipBg: 'bg-indigo-50',
-    chipText: 'text-indigo-600',
+    chipBg: 'bg-indigo-600',
+    chipText: 'text-white',
     match: (path: string) => !path.startsWith('/invest'),
   },
   {
     id: 'saham',
     nameKey: 'nav.module.olahsaham',
     descKey: 'nav.module.olahsahamDesc',
-    icon: TrendingUp,
+    icon: OlahSahamMark,
     home: '/invest',
-    chipBg: 'bg-amber-50',
-    chipText: 'text-amber-600',
+    chipBg: 'bg-blue-500',
+    chipText: 'text-white',
     match: (path: string) => path.startsWith('/invest'),
   },
 ];
@@ -116,8 +119,10 @@ export function Sidebar() {
       >
         <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between">
           <Link href="/home" onClick={close} className="flex items-center gap-2.5 group">
-            <div className="brand-mark w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0">O</div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight group-hover:text-indigo-600 transition-colors">OlahDana</h1>
+            <div className="brand-mark w-7 h-7 rounded-lg flex items-center justify-center text-white p-1.5 flex-shrink-0">
+              <OlahDanaMark className="w-full h-full" />
+            </div>
+            <h1 className="font-geist text-lg font-semibold text-gray-900 tracking-tight group-hover:text-indigo-600 transition-colors">OlahDana</h1>
           </Link>
           <button onClick={close} className="md:hidden text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />

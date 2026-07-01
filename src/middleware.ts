@@ -2,7 +2,10 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { ADMIN_EMAIL, OLAHATUR_BETA_PATHS } from '@/lib/constants';
 
-const publicPaths = ['/login', '/auth/callback'];
+const publicPaths = [
+  '/login', '/auth/callback',
+  '/icon', '/apple-icon', '/opengraph-image', '/manifest.webmanifest', '/robots.txt',
+];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });

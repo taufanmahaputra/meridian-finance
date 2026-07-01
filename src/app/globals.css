@@ -2,6 +2,7 @@
 
 @theme inline {
   --font-sans: var(--font-inter);
+  --font-geist: var(--font-geist-sans);
 
   /* Warm stone neutrals, replacing the default cool gray scale everywhere
      the app uses gray-* utilities (bodies, borders, secondary text). */

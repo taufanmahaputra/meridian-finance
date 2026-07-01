@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutGrid, TrendingUp, ArrowRight, LogOut } from 'lucide-react';
+import { ArrowRight, LogOut } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { getSignals } from '@/lib/investSignals';
 import { fmt, getTrendData } from '@/lib/calculations';
 import { ADMIN_EMAIL } from '@/lib/constants';
 import { BetaAccessModal } from '@/components/BetaAccessModal';
+import { OlahDanaMark } from '@/components/logos/OlahDanaMark';
+import { OlahAturMark } from '@/components/logos/OlahAturMark';
+import { OlahSahamMark } from '@/components/logos/OlahSahamMark';
 
 const GREETINGS_EN = [
   'How\'s your day going?',
@@ -86,7 +89,9 @@ export default function HomePage() {
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 pb-16">
         <div className="text-center mb-10">
-          <div className="brand-mark w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-bold mx-auto mb-5">O</div>
+          <div className="brand-mark w-12 h-12 rounded-2xl flex items-center justify-center text-white p-2.5 mx-auto mb-5">
+            <OlahDanaMark className="w-full h-full" />
+          </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
             Hi{displayName ? `, ${displayName}` : ''}.
           </h1>
@@ -103,8 +108,8 @@ export default function HomePage() {
                     {t('beta.badge')}
                   </span>
                 )}
-                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 transition-all duration-200 group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-110">
-                  <LayoutGrid className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 p-2.5 transition-all duration-200 group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-110">
+                  <OlahAturMark className="w-full h-full" />
                 </div>
                 <div className="text-base font-bold text-gray-900 mb-1">{t('nav.module.olahatur')}</div>
                 <div className="text-xs text-gray-400 mb-5">{t('nav.module.olahaturDesc')}</div>
@@ -137,14 +142,14 @@ export default function HomePage() {
           })()}
 
           <Link href="/invest" className="group">
-            <div className="bg-white border-2 border-gray-200 rounded-2xl card-shadow p-6 h-full flex flex-col transition-all duration-200 ease-out group-hover:-translate-y-1 group-hover:border-amber-300 group-hover:shadow-xl group-hover:shadow-amber-100 group-hover:bg-amber-50/30 group-active:translate-y-0 group-active:shadow-md">
-              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 transition-all duration-200 group-hover:bg-amber-500 group-hover:text-white group-hover:scale-110">
-                <TrendingUp className="w-6 h-6" />
+            <div className="bg-white border-2 border-gray-200 rounded-2xl card-shadow p-6 h-full flex flex-col transition-all duration-200 ease-out group-hover:-translate-y-1 group-hover:border-blue-300 group-hover:shadow-xl group-hover:shadow-blue-100 group-hover:bg-blue-50/30 group-active:translate-y-0 group-active:shadow-md">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 p-2.5 transition-all duration-200 group-hover:bg-blue-500 group-hover:text-white group-hover:scale-110">
+                <OlahSahamMark className="w-full h-full" />
               </div>
               <div className="text-base font-bold text-gray-900 mb-1">{t('nav.module.olahsaham')}</div>
               <div className="text-xs text-gray-400 mb-5">{t('nav.module.olahsahamDesc')}</div>
 
-              <div className="mt-auto pt-4 border-t border-gray-100 group-hover:border-amber-100 transition-colors">
+              <div className="mt-auto pt-4 border-t border-gray-100 group-hover:border-blue-100 transition-colors">
                 <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{t('home.saham.stat')}</div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-bold text-gray-900">
@@ -159,7 +164,7 @@ export default function HomePage() {
                 <div className="text-[11px] text-gray-400 mt-1">{buyCount} {t('home.signalsBuy')}</div>
               </div>
 
-              <div className="flex items-center gap-1 text-xs font-semibold text-amber-600 mt-4 group-hover:gap-2 group-hover:text-amber-700 transition-all">
+              <div className="flex items-center gap-1 text-xs font-semibold text-blue-600 mt-4 group-hover:gap-2 group-hover:text-blue-700 transition-all">
                 {t('home.saham.cta')} <ArrowRight className="w-3.5 h-3.5" />
               </div>
             </div>
