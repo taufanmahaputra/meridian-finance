@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutGrid, DollarSign, CheckCircle, Activity,
   Lightbulb, TrendingUp, Upload, X, CalendarDays, Settings,
-  Signal, Compass, ChevronDown, Check, ListChecks,
+  Signal, Compass, ChevronDown, Check, ListChecks, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
@@ -87,7 +87,7 @@ const LAST_MODULE_STORAGE_KEY = 'olahdana:lastModule';
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { open, close } = useSidebar();
+  const { open, close, collapsed, toggleCollapsed } = useSidebar();
   const { t, user } = useFinance();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [betaModalOpen, setBetaModalOpen] = useState(false);
@@ -136,19 +136,31 @@ export function Sidebar() {
       )}
       <aside
         className={cn(
-          'w-[260px] bg-white border-r border-gray-200 flex flex-col fixed top-0 left-0 bottom-0 z-50 transition-transform duration-200 ease-out',
+          'bg-gray-950 flex flex-col fixed top-0 left-0 bottom-0 z-50 transition-[transform,width] duration-200 ease-out',
           open ? 'translate-x-0' : '-translate-x-full',
-          'md:translate-x-0'
+          'md:translate-x-0',
+          collapsed ? 'w-[260px] md:w-[76px]' : 'w-[260px]'
         )}
       >
-        <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between">
-          <Link href="/home" onClick={close} className="flex items-center gap-2.5 group">
+        {/* Desktop-only collapse toggle, floating on the sidebar's edge */}
+        <button
+          onClick={toggleCollapsed}
+          className="hidden md:flex absolute -right-3 top-8 w-6 h-6 rounded-full bg-gray-950 border border-white/10 text-white/50 hover:text-white hover:border-white/30 items-center justify-center transition-colors z-10"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+        </button>
+
+        <div className={cn('px-5 py-5 border-b border-white/10 flex items-center', collapsed ? 'md:justify-center md:px-0' : 'justify-between')}>
+          <Link href="/home" onClick={close} className={cn('flex items-center gap-2.5 group min-w-0', collapsed && 'md:justify-center')}>
             <div className="brand-mark w-7 h-7 rounded-lg flex items-center justify-center text-white p-1.5 flex-shrink-0">
               <OlahDanaMark className="w-full h-full" />
             </div>
-            <h1 className="font-geist text-lg font-semibold text-gray-900 tracking-tight group-hover:text-indigo-600 transition-colors">OlahDana</h1>
+            <h1 className={cn('font-geist text-lg font-semibold text-white tracking-tight group-hover:text-indigo-300 transition-colors truncate', collapsed && 'md:hidden')}>
+              OlahDana
+            </h1>
           </Link>
-          <button onClick={close} className="md:hidden text-gray-400 hover:text-gray-600">
+          <button onClick={close} className={cn('md:hidden text-white/40 hover:text-white', collapsed && 'md:hidden')}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -156,22 +168,28 @@ export function Sidebar() {
         <div className="px-3 pt-3 relative">
           <button
             onClick={() => setSwitcherOpen((v) => !v)}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl border border-gray-200 hover:border-gray-300 bg-gray-50/60 transition-colors"
+            className={cn(
+              'w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/5 transition-colors',
+              collapsed && 'md:justify-center md:px-0'
+            )}
           >
             <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', activeModule.chipBg, activeModule.chipText)}>
               <activeModule.icon className="w-[17px] h-[17px]" />
             </div>
-            <div className="flex-1 text-left min-w-0">
-              <div className="text-[13px] font-semibold text-gray-900 truncate">{t(activeModule.nameKey)}</div>
-              <div className="text-[10px] text-gray-400 truncate">{t(activeModule.descKey)}</div>
+            <div className={cn('flex-1 text-left min-w-0', collapsed && 'md:hidden')}>
+              <div className="text-[13px] font-semibold text-white truncate">{t(activeModule.nameKey)}</div>
+              <div className="text-[10px] text-white/40 truncate">{t(activeModule.descKey)}</div>
             </div>
-            <ChevronDown className={cn('w-4 h-4 text-gray-400 flex-shrink-0 transition-transform', switcherOpen && 'rotate-180')} />
+            <ChevronDown className={cn('w-4 h-4 text-white/40 flex-shrink-0 transition-transform', switcherOpen && 'rotate-180', collapsed && 'md:hidden')} />
           </button>
 
           {switcherOpen && (
             <>
               <div className="fixed inset-0 z-[59]" onClick={() => setSwitcherOpen(false)} />
-              <div className="absolute left-3 right-3 top-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-[60]">
+              <div className={cn(
+                'absolute top-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-[60]',
+                collapsed ? 'left-3 right-3 md:left-[calc(100%+8px)] md:right-auto md:top-0 md:mt-0 md:w-64' : 'left-3 right-3'
+              )}>
                 {MODULES.map((m) => {
                   const isActive = m.id === activeModule.id;
                   const showBeta = m.id === 'atur' && !isAdmin;
@@ -210,7 +228,7 @@ export function Sidebar() {
         <nav className="flex-1 px-3 py-3 overflow-y-auto">
           {navSections.map((section) => (
             <div key={section.titleKey}>
-              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 pt-4 pb-1.5">
+              <div className={cn('text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pt-4 pb-1.5', collapsed && 'md:hidden')}>
                 {t(section.titleKey)}
               </div>
               {section.items.map((item) => {
@@ -220,15 +238,17 @@ export function Sidebar() {
                     key={item.href}
                     href={item.href}
                     onClick={close}
+                    title={collapsed ? t(item.labelKey) : undefined}
                     className={cn(
                       'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5',
+                      collapsed && 'md:justify-center',
                       active
-                        ? 'bg-indigo-50 text-indigo-600 font-semibold'
-                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-indigo-500/15 text-indigo-300 font-semibold'
+                        : 'text-white/50 hover:bg-white/5 hover:text-white'
                     )}
                   >
-                    <item.icon className="w-[18px] h-[18px]" />
-                    {t(item.labelKey)}
+                    <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+                    <span className={cn(collapsed && 'md:hidden')}>{t(item.labelKey)}</span>
                   </Link>
                 );
               })}
@@ -238,19 +258,21 @@ export function Sidebar() {
             <Link
               href="/settings"
               onClick={close}
+              title={collapsed ? t('nav.settings') : undefined}
               className={cn(
                 'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5',
+                collapsed && 'md:justify-center',
                 pathname === '/settings'
-                  ? 'bg-indigo-50 text-indigo-600 font-semibold'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-indigo-500/15 text-indigo-300 font-semibold'
+                  : 'text-white/50 hover:bg-white/5 hover:text-white'
               )}
             >
-              <Settings className="w-[18px] h-[18px]" />
-              {t('nav.settings')}
+              <Settings className="w-[18px] h-[18px] flex-shrink-0" />
+              <span className={cn(collapsed && 'md:hidden')}>{t('nav.settings')}</span>
             </Link>
           </div>
         </nav>
-        <div className="px-5 py-4 border-t border-gray-100 text-[11px] text-gray-400">
+        <div className={cn('px-5 py-4 border-t border-white/10 text-[11px] text-white/30', collapsed && 'md:hidden')}>
           {t('nav.footer')}<br />
           {t('nav.footerSub')}
         </div>

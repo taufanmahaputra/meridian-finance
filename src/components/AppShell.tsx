@@ -3,7 +3,19 @@
 import { usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { useFinance } from '@/lib/FinanceContext';
-import { SidebarProvider } from '@/lib/SidebarContext';
+import { SidebarProvider, useSidebar } from '@/lib/SidebarContext';
+
+function AppShellContent({ children }: { children: React.ReactNode }) {
+  const { collapsed } = useSidebar();
+  return (
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main className={`flex-1 min-w-0 transition-[margin] duration-200 ease-out ${collapsed ? 'md:ml-[76px]' : 'md:ml-[260px]'}`}>
+        {children}
+      </main>
+    </div>
+  );
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,10 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <main className="flex-1 md:ml-[260px] min-w-0">{children}</main>
-      </div>
+      <AppShellContent>{children}</AppShellContent>
     </SidebarProvider>
   );
 }
