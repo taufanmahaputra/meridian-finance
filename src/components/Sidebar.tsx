@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -11,7 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
 import { useFinance } from '@/lib/FinanceContext';
-import { ADMIN_EMAIL } from '@/lib/constants';
+import { ADMIN_EMAIL, OLAHATUR_BETA_PATHS } from '@/lib/constants';
 import { BetaAccessModal } from '@/components/BetaAccessModal';
 import { OlahDanaMark } from '@/components/logos/OlahDanaMark';
 import { OlahAturMark } from '@/components/logos/OlahAturMark';
@@ -66,7 +66,9 @@ const MODULES = [
     home: '/dashboard',
     chipBg: 'bg-indigo-600',
     chipText: 'text-white',
-    match: (path: string) => !path.startsWith('/invest'),
+    // Only OlahAtur's own pages — NOT shared pages like /settings, which
+    // belong to neither module and shouldn't hijack the switcher.
+    match: (path: string) => OLAHATUR_BETA_PATHS.some((p) => path.startsWith(p)),
   },
   {
     id: 'saham',
@@ -80,6 +82,8 @@ const MODULES = [
   },
 ];
 
+const LAST_MODULE_STORAGE_KEY = 'olahdana:lastModule';
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -87,9 +91,29 @@ export function Sidebar() {
   const { t, user } = useFinance();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [betaModalOpen, setBetaModalOpen] = useState(false);
+  // Sidebar only ever mounts client-side (AppShell gates it behind the auth
+  // loading check), so reading localStorage in the initializer is safe —
+  // there's no SSR pass for this component to mismatch against.
+  const [lastModuleId, setLastModuleId] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'atur';
+    return window.localStorage.getItem(LAST_MODULE_STORAGE_KEY) || 'atur';
+  });
   const isAdmin = user?.email === ADMIN_EMAIL;
 
-  const activeModule = MODULES.find((m) => m.match(pathname)) ?? MODULES[0];
+  // Shared pages (Settings, etc.) belong to neither module — when on one,
+  // keep showing whichever module the user was actually browsing instead
+  // of silently snapping the switcher back to OlahAtur.
+  const matchedModule = MODULES.find((m) => m.match(pathname));
+
+  useEffect(() => {
+    if (matchedModule) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLastModuleId(matchedModule.id);
+      window.localStorage.setItem(LAST_MODULE_STORAGE_KEY, matchedModule.id);
+    }
+  }, [matchedModule]);
+
+  const activeModule = matchedModule ?? MODULES.find((m) => m.id === lastModuleId) ?? MODULES[0];
   const navSections = activeModule.id === 'saham' ? olahSahamSections : olahAturSections;
 
   function selectModule(moduleId: string, home: string) {
