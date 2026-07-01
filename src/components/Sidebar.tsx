@@ -136,7 +136,7 @@ export function Sidebar() {
       )}
       <aside
         className={cn(
-          'bg-gray-950 flex flex-col fixed top-0 left-0 bottom-0 z-50 transition-[transform,width] duration-200 ease-out',
+          'bg-indigo-950 flex flex-col fixed top-0 left-0 bottom-0 z-50 transition-[transform,width] duration-200 ease-out',
           open ? 'translate-x-0' : '-translate-x-full',
           'md:translate-x-0',
           collapsed ? 'w-[260px] md:w-[76px]' : 'w-[260px]'
@@ -145,7 +145,7 @@ export function Sidebar() {
         {/* Desktop-only collapse toggle, floating on the sidebar's edge */}
         <button
           onClick={toggleCollapsed}
-          className="hidden md:flex absolute -right-3 top-8 w-6 h-6 rounded-full bg-gray-950 border border-white/10 text-white/50 hover:text-white hover:border-white/30 items-center justify-center transition-colors z-10"
+          className="hidden md:flex absolute -right-3 top-8 w-6 h-6 rounded-full bg-indigo-950 border border-white/10 text-white/50 hover:text-white hover:border-white/30 items-center justify-center transition-colors z-10"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
