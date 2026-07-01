@@ -34,21 +34,22 @@ const GREETINGS_ID = [
   'Selamat datang kembali — yuk mulai.',
 ];
 
-interface MarketResponse {
-  ihsg: { value: number | null; ytdPct: number | null };
+interface IntradayResponse {
+  price: number | null;
+  changePct: number | null;
 }
 
 export default function HomePage() {
   const { user, months, currency, language, t, signOut } = useFinance();
   const router = useRouter();
   const supabase = createClient();
-  const [market, setMarket] = useState<MarketResponse | null>(null);
+  const [intraday, setIntraday] = useState<IntradayResponse | null>(null);
   const [buyCount, setBuyCount] = useState<number | null>(null);
   const [betaModalOpen, setBetaModalOpen] = useState(false);
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
-    fetch('/api/market').then((res) => res.json()).then(setMarket).catch(() => {});
+    fetch('/api/ihsg-intraday').then((res) => res.json()).then(setIntraday).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -170,14 +171,14 @@ export default function HomePage() {
               <div className="text-xs text-gray-400 mb-5">{t('nav.module.olahsahamDesc')}</div>
 
               <div className="mt-auto pt-4 border-t border-gray-100 group-hover:border-blue-100 transition-colors">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{t('home.saham.stat')}</div>
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{t('invest.dashboard.ihsgToday')}</div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-bold text-gray-900">
-                    {market?.ihsg.value != null ? market.ihsg.value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '—'}
+                    {intraday?.price != null ? intraday.price.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '—'}
                   </span>
-                  {market?.ihsg.ytdPct != null && (
-                    <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${market.ihsg.ytdPct >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-500 bg-red-50'}`}>
-                      {market.ihsg.ytdPct >= 0 ? '+' : ''}{market.ihsg.ytdPct.toFixed(2)}% YTD
+                  {intraday?.changePct != null && (
+                    <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${intraday.changePct >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-500 bg-red-50'}`}>
+                      {intraday.changePct >= 0 ? '+' : ''}{intraday.changePct.toFixed(2)}%
                     </span>
                   )}
                 </div>
