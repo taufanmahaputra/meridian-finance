@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Trash2, Send } from 'lucide-react';
+import { Trash2, Send, AlertTriangle } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { createClient } from '@/lib/supabase';
 import { Topbar } from '@/components/Topbar';
@@ -20,16 +20,23 @@ export default function WatchlistPage() {
   const [loading, setLoading] = useState(true);
   const [pasteText, setPasteText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const preview = useMemo(() => parseSignalText(pasteText), [pasteText]);
 
   const loadBatches = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('stock_signals')
       .select('*')
       .order('batch_date', { ascending: false })
       .order('sort_order', { ascending: true });
+
+    if (error) {
+      setErrorMsg(error.message);
+      setLoading(false);
+      return;
+    }
 
     const grouped = new Map<string, StockSignal[]>();
     (data ?? []).forEach((row) => {
@@ -58,6 +65,7 @@ export default function WatchlistPage() {
   async function handlePost() {
     if (!user || preview.length === 0) return;
     setPosting(true);
+    setErrorMsg(null);
 
     const batchDate = new Date().toISOString().slice(0, 10);
     const rows = preview.map((line, i) => ({
@@ -69,16 +77,23 @@ export default function WatchlistPage() {
       created_by: user.id,
     }));
 
-    await supabase.from('stock_signals').insert(rows);
+    const { error: insertError } = await supabase.from('stock_signals').insert(rows);
+    if (insertError) {
+      setErrorMsg(insertError.message);
+      setPosting(false);
+      return;
+    }
 
-    const { data: dateRows } = await supabase
+    const { data: dateRows, error: dateErr } = await supabase
       .from('stock_signals')
       .select('batch_date')
       .order('batch_date', { ascending: false });
-    const distinctDates = Array.from(new Set((dateRows ?? []).map((r) => r.batch_date)));
-    const staleDates = distinctDates.slice(MAX_SIGNAL_BATCHES);
-    if (staleDates.length > 0) {
-      await supabase.from('stock_signals').delete().in('batch_date', staleDates);
+    if (!dateErr) {
+      const distinctDates = Array.from(new Set((dateRows ?? []).map((r) => r.batch_date)));
+      const staleDates = distinctDates.slice(MAX_SIGNAL_BATCHES);
+      if (staleDates.length > 0) {
+        await supabase.from('stock_signals').delete().in('batch_date', staleDates);
+      }
     }
 
     setPasteText('');
@@ -88,7 +103,11 @@ export default function WatchlistPage() {
 
   async function handleDeleteBatch(batchDate: string) {
     if (!window.confirm(t('invest.watchlist.confirmDelete'))) return;
-    await supabase.from('stock_signals').delete().eq('batch_date', batchDate);
+    const { error } = await supabase.from('stock_signals').delete().eq('batch_date', batchDate);
+    if (error) {
+      setErrorMsg(error.message);
+      return;
+    }
     await loadBatches();
   }
 
@@ -110,6 +129,13 @@ export default function WatchlistPage() {
           <h3 className="text-sm font-semibold">{t('invest.watchlist.heading')}</h3>
           <p className="text-xs text-gray-400">{t('invest.watchlist.subtitle')}</p>
         </div>
+
+        {errorMsg && (
+          <div className="flex items-start gap-2 px-3.5 py-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 mb-6">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
 
         {isAdmin && (
           <Card className="mb-6">
