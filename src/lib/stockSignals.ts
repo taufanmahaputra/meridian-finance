@@ -57,25 +57,38 @@ export function parseSignalText(text: string): ParsedSignalLine[] {
   return results;
 }
 
+export type SignalState = 'buy' | 'breakout' | 'avoid' | 'waiting' | null;
+
 export interface SignalStatus {
   price: number | null;
-  buy: boolean | null; // null = price not loaded yet, can't tell
-  breakout: boolean; // true if the buy trigger was the "bob >" breakout condition, not the entry zone
+  state: SignalState; // null = price not loaded yet, can't tell
 }
 
+// How close price needs to be to a support level to count as "in the zone".
+const SUPPORT_MARGIN = 0.005; // ±0.5%
+
 /**
- * A signal is "in buy range" once price has pulled back to (or below) the
- * highest entry level, or — if the note contains a "bob > N" breakout
- * condition — once price has broken out above N.
+ * Entries are support levels (support 1, support 2, ...). Price within ±0.5%
+ * of any support level means it's time to buy. Price below every support
+ * level means the thesis is broken — avoid. Otherwise price hasn't pulled
+ * back into the zone yet — waiting. A "bob > N" breakout condition in the
+ * note is a separate, independent buy trigger once price clears N.
  */
 export function evaluateSignal(entries: number[], note: string | null, price: number | null): SignalStatus {
-  if (price == null) return { price: null, buy: null, breakout: false };
+  if (price == null || entries.length === 0) return { price, state: null };
 
   const bobMatch = note?.match(/bob\s*>\s*([\d.,]+)/i);
   const bobThreshold = bobMatch ? parseFloat(bobMatch[1].replace(/,/g, '')) : null;
 
-  const inPullbackZone = entries.length > 0 && price <= Math.max(...entries);
-  const brokeOut = bobThreshold != null && price > bobThreshold;
+  if (bobThreshold != null && price > bobThreshold) {
+    return { price, state: 'breakout' };
+  }
 
-  return { price, buy: inPullbackZone || brokeOut, breakout: brokeOut && !inPullbackZone };
+  const inZone = entries.some((level) => Math.abs(price - level) / level <= SUPPORT_MARGIN);
+  if (inZone) return { price, state: 'buy' };
+
+  const minSupport = Math.min(...entries);
+  if (price < minSupport * (1 - SUPPORT_MARGIN)) return { price, state: 'avoid' };
+
+  return { price, state: 'waiting' };
 }

@@ -45,13 +45,20 @@ function TickerLogo({ ticker }: { ticker: string }) {
   );
 }
 
+const STATE_BADGE_VARIANT = {
+  buy: 'success',
+  breakout: 'success',
+  avoid: 'danger',
+  waiting: 'warning',
+} as const;
+
 function PriceStatusCell({
   entries, note, price, labels,
 }: {
   entries: number[];
   note: string | null;
   price: number | null | undefined;
-  labels: { buy: string; breakout: string; waiting: string };
+  labels: { buy: string; breakout: string; avoid: string; waiting: string };
 }) {
   if (price === undefined) {
     return <span className="text-xs text-gray-300">…</span>;
@@ -64,10 +71,9 @@ function PriceStatusCell({
       <span className="text-sm font-bold text-gray-900 font-mono">
         {price != null ? `Rp${price.toLocaleString('id-ID')}` : '—'}
       </span>
-      {status.buy === true && (
-        <Badge variant="success">{status.breakout ? labels.breakout : labels.buy}</Badge>
+      {status.state && (
+        <Badge variant={STATE_BADGE_VARIANT[status.state]}>{labels[status.state]}</Badge>
       )}
-      {status.buy === false && <Badge variant="warning">{labels.waiting}</Badge>}
     </div>
   );
 }
@@ -201,6 +207,7 @@ export default function WatchlistPage() {
   const statusLabels = {
     buy: t('invest.watchlist.status.buy'),
     breakout: t('invest.watchlist.status.breakout'),
+    avoid: t('invest.watchlist.status.avoid'),
     waiting: t('invest.watchlist.status.waiting'),
   };
 
