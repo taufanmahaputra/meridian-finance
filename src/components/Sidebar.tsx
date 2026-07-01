@@ -7,11 +7,12 @@ import {
   LayoutGrid, DollarSign, CheckCircle, Activity,
   Lightbulb, TrendingUp, Upload, X, CalendarDays, Settings,
   Signal, Compass, ChevronDown, Check, ListChecks, ChevronLeft, ChevronRight,
+  Languages, HelpCircle, LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
 import { useFinance } from '@/lib/FinanceContext';
-import { ADMIN_EMAIL, OLAHATUR_BETA_PATHS } from '@/lib/constants';
+import { ADMIN_EMAIL, OLAHATUR_BETA_PATHS, whatsappLink } from '@/lib/constants';
 import { BetaAccessModal } from '@/components/BetaAccessModal';
 import { OlahDanaMark } from '@/components/logos/OlahDanaMark';
 import { OlahAturMark } from '@/components/logos/OlahAturMark';
@@ -88,8 +89,9 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { open, close, collapsed, toggleCollapsed } = useSidebar();
-  const { t, user } = useFinance();
+  const { t, user, language, updateLanguage, signOut } = useFinance();
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [betaModalOpen, setBetaModalOpen] = useState(false);
   // Sidebar only ever mounts client-side (AppShell gates it behind the auth
   // loading check), so reading localStorage in the initializer is safe —
@@ -125,6 +127,15 @@ export function Sidebar() {
     router.push(home);
     close();
   }
+
+  async function handleSignOut() {
+    setAccountMenuOpen(false);
+    await signOut();
+    router.push('/login');
+  }
+
+  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || '';
+  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
 
   return (
     <>
@@ -256,27 +267,85 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className="px-3 py-3 border-t border-white/10">
-          <Link
-            href="/settings"
-            onClick={close}
-            title={collapsed ? t('nav.settings') : undefined}
+        <div className="px-3 py-3 border-t border-white/10 relative">
+          <button
+            onClick={() => setAccountMenuOpen((v) => !v)}
             className={cn(
-              'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors',
-              collapsed && 'md:justify-center',
-              pathname === '/settings'
-                ? 'bg-indigo-500/15 text-indigo-300 font-semibold'
-                : 'text-white/50 hover:bg-white/5 hover:text-white'
+              'w-full flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-white/5 transition-colors',
+              collapsed && 'md:justify-center md:px-0'
             )}
           >
-            <Settings className="w-[18px] h-[18px] flex-shrink-0" />
-            <span className={cn(collapsed && 'md:hidden')}>{t('nav.settings')}</span>
-          </Link>
-        </div>
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="w-8 h-8 rounded-full flex-shrink-0" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-300 flex items-center justify-center text-[11px] font-bold flex-shrink-0">
+                {displayName.slice(0, 2).toUpperCase() || 'U'}
+              </div>
+            )}
+            <div className={cn('flex-1 text-left min-w-0', collapsed && 'md:hidden')}>
+              <div className="text-[13px] font-semibold text-white truncate">{displayName || t('nav.account')}</div>
+              <div className="text-[10px] text-white/40 truncate">{user?.email}</div>
+            </div>
+            <ChevronDown className={cn('w-4 h-4 text-white/40 flex-shrink-0 transition-transform', accountMenuOpen && 'rotate-180', collapsed && 'md:hidden')} />
+          </button>
 
-        <div className={cn('px-5 py-4 border-t border-white/10 text-[11px] text-white/30', collapsed && 'md:hidden')}>
-          {t('nav.footer')}<br />
-          {t('nav.footerSub')}
+          {accountMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-[59]" onClick={() => setAccountMenuOpen(false)} />
+              <div className={cn(
+                'absolute bottom-full mb-1.5 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-[60] py-1',
+                collapsed ? 'left-3 right-3 md:left-[calc(100%+8px)] md:right-auto md:bottom-0 md:mb-0 md:w-64' : 'left-3 right-3'
+              )}>
+                <Link
+                  href="/settings"
+                  onClick={() => { setAccountMenuOpen(false); close(); }}
+                  className="flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Settings className="w-4 h-4" /> {t('nav.settings')}
+                </Link>
+
+                <div className="flex items-center justify-between px-3 py-2.5">
+                  <span className="flex items-center gap-2.5 text-[13px] font-medium text-gray-700">
+                    <Languages className="w-4 h-4" /> {t('settings.language.title')}
+                  </span>
+                  <div className="flex rounded-lg border border-gray-200 overflow-hidden text-[11px] font-semibold">
+                    <button
+                      onClick={() => updateLanguage('en')}
+                      className={cn('px-2 py-1 transition-colors', language === 'en' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50')}
+                    >
+                      EN
+                    </button>
+                    <button
+                      onClick={() => updateLanguage('id')}
+                      className={cn('px-2 py-1 transition-colors', language === 'id' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50')}
+                    >
+                      ID
+                    </button>
+                  </div>
+                </div>
+
+                <a
+                  href={whatsappLink(t('nav.getHelpMessage'))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setAccountMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <HelpCircle className="w-4 h-4" /> {t('nav.getHelp')}
+                </a>
+
+                <div className="border-t border-gray-100 mt-1 pt-1">
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" /> {t('common.signOut')}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </aside>
 
