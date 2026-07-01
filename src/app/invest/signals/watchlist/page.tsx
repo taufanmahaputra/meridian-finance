@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Trash2, Send, AlertTriangle, Zap } from 'lucide-react';
+import { Trash2, Send, AlertTriangle, Zap, TrendingUp } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { createClient } from '@/lib/supabase';
 import { Topbar } from '@/components/Topbar';
@@ -96,6 +96,7 @@ export default function WatchlistPage() {
   // can bump it up (or pick "all") if they'd rather see everything at once.
   const [pageSize, setPageSize] = useState<PageSize>(10);
   const [pageByBatch, setPageByBatch] = useState<Record<string, number>>({});
+  const [buyOnly, setBuyOnly] = useState(false);
 
   const preview = useMemo(() => parseSignalText(pasteText), [pasteText]);
   const allTickers = useMemo(
@@ -206,6 +207,17 @@ export default function WatchlistPage() {
     setPageByBatch({});
   }
 
+  function toggleBuyOnly() {
+    setBuyOnly((v) => !v);
+    setPageByBatch({});
+  }
+
+  function isBuy(s: StockSignal) {
+    return evaluateSignal(s.entries, s.note, quotes[s.ticker] ?? null).state === 'buy';
+  }
+
+  const totalBuyCount = batches.reduce((acc, b) => acc + b.signals.filter(isBuy).length, 0);
+
   function formatDate(dateStr: string) {
     return new Date(`${dateStr}T00:00:00`).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -291,28 +303,53 @@ export default function WatchlistPage() {
         )}
 
         {batches.length > 0 && (
-          <div className="flex items-center justify-end gap-2 mb-3">
-            <span className="text-xs text-gray-400">{t('invest.watchlist.rowsPerPage')}</span>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange((e.target.value === 'all' ? 'all' : Number(e.target.value)) as PageSize)}
-              className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus:border-indigo-400 outline-none"
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <button
+              onClick={toggleBuyOnly}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors',
+                buyOnly
+                  ? 'bg-emerald-600 border-emerald-600 text-white'
+                  : 'bg-white border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-600'
+              )}
             >
-              {PAGE_SIZE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt === 'all' ? t('invest.watchlist.showAll') : opt}</option>
-              ))}
-            </select>
+              <TrendingUp className="w-3.5 h-3.5" />
+              {t('invest.watchlist.filter.buyOnly')}
+              <span className={cn('px-1.5 py-0.5 rounded-full text-[10px]', buyOnly ? 'bg-white/20' : 'bg-emerald-50 text-emerald-600')}>
+                {totalBuyCount}
+              </span>
+            </button>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">{t('invest.watchlist.rowsPerPage')}</span>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange((e.target.value === 'all' ? 'all' : Number(e.target.value)) as PageSize)}
+                className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus:border-indigo-400 outline-none"
+              >
+                {PAGE_SIZE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt === 'all' ? t('invest.watchlist.showAll') : opt}</option>
+                ))}
+              </select>
+            </div>
           </div>
+        )}
+
+        {buyOnly && totalBuyCount === 0 && (
+          <EmptyState title={t('invest.watchlist.filter.noBuyTitle')} description={t('invest.watchlist.filter.noBuyDesc')} />
         )}
 
         <div className="space-y-6">
           {batches.map((batch) => {
-            const effectiveSize = pageSize === 'all' ? batch.signals.length : pageSize;
-            const totalPages = Math.max(1, Math.ceil(batch.signals.length / effectiveSize));
+            const visibleSignals = buyOnly ? batch.signals.filter(isBuy) : batch.signals;
+            if (visibleSignals.length === 0) return null;
+
+            const effectiveSize = pageSize === 'all' ? visibleSignals.length : pageSize;
+            const totalPages = Math.max(1, Math.ceil(visibleSignals.length / effectiveSize));
             const currentPage = Math.min(pageByBatch[batch.batchDate] ?? 0, totalPages - 1);
             const pageSignals = pageSize === 'all'
-              ? batch.signals
-              : batch.signals.slice(currentPage * effectiveSize, (currentPage + 1) * effectiveSize);
+              ? visibleSignals
+              : visibleSignals.slice(currentPage * effectiveSize, (currentPage + 1) * effectiveSize);
 
             return (
               <Card key={batch.batchDate}>
@@ -326,7 +363,7 @@ export default function WatchlistPage() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   ) : (
-                    <Badge variant="neutral">{batch.signals.length}</Badge>
+                    <Badge variant="neutral">{visibleSignals.length}</Badge>
                   )
                 }>
                   <span className="text-base">{formatDate(batch.batchDate)}</span>
@@ -386,7 +423,7 @@ export default function WatchlistPage() {
 
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-400">{batch.signals.length} {t('invest.watchlist.signalsCount')}</span>
+                      <span className="text-xs text-gray-400">{visibleSignals.length} {t('invest.watchlist.signalsCount')}</span>
                       <div className="flex gap-1.5">
                         {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => (
                           <button
