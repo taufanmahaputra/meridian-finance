@@ -19,6 +19,7 @@ export default function ForecastPage() {
           <EmptyState
             title={t('forecast.empty.title')}
             description={t('forecast.empty.desc')}
+            showUpload
           />
         </div>
       </>

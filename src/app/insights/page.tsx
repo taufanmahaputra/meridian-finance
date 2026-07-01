@@ -34,6 +34,7 @@ export default function InsightsPage() {
           <EmptyState
             title={t('insights.empty.title')}
             description={t('insights.empty.desc')}
+            showUpload
           />
         </div>
       </>

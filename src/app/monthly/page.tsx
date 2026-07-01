@@ -35,6 +35,7 @@ function MonthlyDetailContent() {
           <EmptyState
             title={t('monthly.empty.title')}
             description={t('monthly.empty.desc')}
+            showUpload
           />
         </div>
       </>

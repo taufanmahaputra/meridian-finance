@@ -30,6 +30,7 @@ export default function DashboardPage() {
             title={t('dashboard.empty.title')}
             description={t('dashboard.empty.desc')}
             onAddMonth={() => setModalOpen(true)}
+            showUpload
           />
         </div>
         <AddMonthModal open={modalOpen} onClose={() => setModalOpen(false)} onAdd={addMonth} categories={categories} catBudgets={catBudgets} defaultIncome={income} currency={currency} />

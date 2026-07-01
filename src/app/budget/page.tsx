@@ -20,6 +20,7 @@ export default function BudgetPage() {
           <EmptyState
             title={t('budget.empty.title')}
             description={t('budget.empty.desc')}
+            showUpload
           />
         </div>
       </>
