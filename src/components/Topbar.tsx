@@ -1,9 +1,9 @@
 'use client';
 
-import { Upload, LogOut, Menu } from 'lucide-react';
+import { Upload, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useFinance } from '@/lib/FinanceContext';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useSidebar } from '@/lib/SidebarContext';
 
 interface TopbarProps {
@@ -12,20 +12,10 @@ interface TopbarProps {
 }
 
 export function Topbar({ title, onAddMonth }: TopbarProps) {
-  const { user, signOut, t, language } = useFinance();
-  const router = useRouter();
+  const { t, language } = useFinance();
   const pathname = usePathname();
   const { toggle } = useSidebar();
   const isInvest = pathname.startsWith('/invest');
-
-  async function handleSignOut() {
-    await signOut();
-    router.push('/login');
-  }
-
-  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
-  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || '';
-  const initials = displayName ? displayName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) : 'U';
 
   return (
     <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-30">
@@ -59,29 +49,6 @@ export function Topbar({ title, onAddMonth }: TopbarProps) {
             <span className="hidden sm:inline">{t('common.addMonth')}</span>
           </button>
         )}
-
-        <div className="relative group ml-1">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="" className="w-8 h-8 rounded-full cursor-pointer border-2 border-transparent hover:border-indigo-200 transition-colors" referrerPolicy="no-referrer" />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold cursor-pointer">
-              {initials}
-            </div>
-          )}
-          <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg py-1 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-            <div className="px-3 py-2 border-b border-gray-100">
-              <p className="text-xs font-medium text-gray-900 truncate">{displayName}</p>
-              <p className="text-[10px] text-gray-400 truncate">{user?.email}</p>
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              {t('common.signOut')}
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
