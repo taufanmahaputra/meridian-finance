@@ -9,7 +9,7 @@ import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/EmptyState';
 import { ADMIN_EMAIL, MAX_SIGNAL_BATCHES } from '@/lib/constants';
-import { parseSignalText, type SignalBatch, type StockSignal } from '@/lib/stockSignals';
+import { parseSignalText, evaluateSignal, type SignalBatch, type StockSignal } from '@/lib/stockSignals';
 import { cn } from '@/lib/utils';
 
 // Entry levels are color-coded by position so the same color always means
@@ -19,6 +19,58 @@ const LEVEL_STYLES = [
   { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', label: 'text-emerald-500' },
   { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', label: 'text-amber-500' },
 ];
+
+// Both the header and each row share this template so columns line up exactly.
+const GRID_COLS = 'sm:grid-cols-[168px_1fr_130px_224px]';
+
+function TickerLogo({ ticker }: { ticker: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0">
+        {ticker.slice(0, 2)}
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://images.financialmodelingprep.com/symbol/${ticker}.JK.png`}
+      alt={ticker}
+      className="w-10 h-10 rounded-lg object-contain bg-white border border-gray-200 p-1 flex-shrink-0"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function PriceStatusCell({
+  entries, note, price, labels,
+}: {
+  entries: number[];
+  note: string | null;
+  price: number | null | undefined;
+  labels: { buy: string; breakout: string; waiting: string };
+}) {
+  if (price === undefined) {
+    return <span className="text-xs text-gray-300">…</span>;
+  }
+
+  const status = evaluateSignal(entries, note, price);
+
+  return (
+    <div className="flex sm:flex-col items-center sm:items-start gap-2 sm:gap-1">
+      <span className="text-sm font-bold text-gray-900 font-mono">
+        {price != null ? `Rp${price.toLocaleString('id-ID')}` : '—'}
+      </span>
+      {status.buy === true && (
+        <Badge variant="success">{status.breakout ? labels.breakout : labels.buy}</Badge>
+      )}
+      {status.buy === false && <Badge variant="warning">{labels.waiting}</Badge>}
+    </div>
+  );
+}
 
 export default function WatchlistPage() {
   const { t, language, user } = useFinance();
@@ -30,8 +82,13 @@ export default function WatchlistPage() {
   const [pasteText, setPasteText] = useState('');
   const [posting, setPosting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [quotes, setQuotes] = useState<Record<string, number | null>>({});
 
   const preview = useMemo(() => parseSignalText(pasteText), [pasteText]);
+  const allTickers = useMemo(
+    () => Array.from(new Set(batches.flatMap((b) => b.signals.map((s) => s.ticker)))),
+    [batches]
+  );
 
   const loadBatches = useCallback(async () => {
     setLoading(true);
@@ -73,6 +130,14 @@ export default function WatchlistPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadBatches();
   }, [loadBatches]);
+
+  useEffect(() => {
+    if (allTickers.length === 0) return;
+    fetch(`/api/stock-quotes?tickers=${allTickers.join(',')}`)
+      .then((res) => res.json())
+      .then((json) => setQuotes((prev) => ({ ...prev, ...json.quotes })))
+      .catch(() => {});
+  }, [allTickers]);
 
   async function handlePost() {
     if (!user || preview.length === 0) return;
@@ -132,6 +197,12 @@ export default function WatchlistPage() {
   function formatEntries(entries: number[]) {
     return entries.map((e) => e.toLocaleString('id-ID')).join(' / ');
   }
+
+  const statusLabels = {
+    buy: t('invest.watchlist.status.buy'),
+    breakout: t('invest.watchlist.status.breakout'),
+    waiting: t('invest.watchlist.status.waiting'),
+  };
 
   return (
     <>
@@ -221,28 +292,28 @@ export default function WatchlistPage() {
                 <span className="text-base">{formatDate(batch.batchDate)}</span>
               </CardHeader>
               <CardBody compact>
-                <div className="hidden sm:flex items-center gap-4 px-5 py-2.5 bg-gray-50 border-b border-gray-200">
-                  <span className="w-28 flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.ticker')}</span>
-                  <span className="flex-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.entries')}</span>
-                  <span className="w-56 flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.note')}</span>
+                <div className={cn('hidden sm:grid sm:gap-4 items-center px-5 py-2.5 bg-gray-50 border-b border-gray-200', GRID_COLS)}>
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.ticker')}</span>
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.entries')}</span>
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.price')}</span>
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.note')}</span>
                 </div>
                 {batch.signals.map((s, idx) => (
                   <div
                     key={s.id}
                     className={cn(
-                      'flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 transition-colors',
+                      'flex flex-col gap-3 px-5 py-4 transition-colors sm:grid sm:gap-4 sm:items-center',
+                      GRID_COLS,
                       idx % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40',
                       idx !== batch.signals.length - 1 && 'border-b border-gray-100'
                     )}
                   >
-                    <div className="flex items-center gap-3 sm:w-28 flex-shrink-0">
-                      <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0">
-                        {s.ticker.slice(0, 2)}
-                      </div>
+                    <div className="flex items-center gap-3">
+                      <TickerLogo ticker={s.ticker} />
                       <span className="text-base font-bold text-gray-900 tracking-wide">{s.ticker}</span>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {s.entries.map((entry, i) => {
                         const style = LEVEL_STYLES[i % LEVEL_STYLES.length];
                         return (
@@ -256,11 +327,15 @@ export default function WatchlistPage() {
                       })}
                     </div>
 
-                    {s.note && (
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium sm:w-56 sm:flex-shrink-0" title={s.note}>
+                    <PriceStatusCell entries={s.entries} note={s.note} price={quotes[s.ticker]} labels={statusLabels} />
+
+                    {s.note ? (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium w-fit sm:w-full" title={s.note}>
                         <Zap className="w-3.5 h-3.5 flex-shrink-0" />
                         <span className="truncate">{s.note}</span>
                       </div>
+                    ) : (
+                      <span className="hidden sm:block text-gray-300 text-xs">—</span>
                     )}
                   </div>
                 ))}

@@ -56,3 +56,26 @@ export function parseSignalText(text: string): ParsedSignalLine[] {
 
   return results;
 }
+
+export interface SignalStatus {
+  price: number | null;
+  buy: boolean | null; // null = price not loaded yet, can't tell
+  breakout: boolean; // true if the buy trigger was the "bob >" breakout condition, not the entry zone
+}
+
+/**
+ * A signal is "in buy range" once price has pulled back to (or below) the
+ * highest entry level, or — if the note contains a "bob > N" breakout
+ * condition — once price has broken out above N.
+ */
+export function evaluateSignal(entries: number[], note: string | null, price: number | null): SignalStatus {
+  if (price == null) return { price: null, buy: null, breakout: false };
+
+  const bobMatch = note?.match(/bob\s*>\s*([\d.,]+)/i);
+  const bobThreshold = bobMatch ? parseFloat(bobMatch[1].replace(/,/g, '')) : null;
+
+  const inPullbackZone = entries.length > 0 && price <= Math.max(...entries);
+  const brokeOut = bobThreshold != null && price > bobThreshold;
+
+  return { price, buy: inPullbackZone || brokeOut, breakout: brokeOut && !inPullbackZone };
+}
