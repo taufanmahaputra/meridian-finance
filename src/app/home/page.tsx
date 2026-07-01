@@ -97,19 +97,19 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-2xl">
           {(() => {
             const cardBody = (
-              <div className="relative bg-white border border-gray-200 rounded-2xl card-shadow hover:shadow-lg hover:border-indigo-200 transition-all p-6 h-full flex flex-col">
+              <div className="relative bg-white border-2 border-gray-200 rounded-2xl card-shadow p-6 h-full flex flex-col transition-all duration-200 ease-out group-hover:-translate-y-1 group-hover:border-indigo-300 group-hover:shadow-xl group-hover:shadow-indigo-100 group-hover:bg-indigo-50/30 group-active:translate-y-0 group-active:shadow-md">
                 {!isAdmin && (
                   <span className="absolute top-4 right-4 text-[9px] font-bold tracking-widest px-2 py-1 rounded-full bg-amber-100 text-amber-700">
                     {t('beta.badge')}
                   </span>
                 )}
-                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 transition-all duration-200 group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-110">
                   <LayoutGrid className="w-6 h-6" />
                 </div>
                 <div className="text-base font-bold text-gray-900 mb-1">{t('nav.module.olahatur')}</div>
                 <div className="text-xs text-gray-400 mb-5">{t('nav.module.olahaturDesc')}</div>
 
-                <div className="mt-auto pt-4 border-t border-gray-100">
+                <div className="mt-auto pt-4 border-t border-gray-100 group-hover:border-indigo-100 transition-colors">
                   <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{t('home.atur.stat')}</div>
                   {lastMonth ? (
                     <div className="flex items-baseline gap-2">
@@ -123,7 +123,7 @@ export default function HomePage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 text-xs font-semibold text-indigo-600 mt-4 group-hover:gap-1.5 transition-all">
+                <div className="flex items-center gap-1 text-xs font-semibold text-indigo-600 mt-4 group-hover:gap-2 group-hover:text-indigo-700 transition-all">
                   {t('home.atur.cta')} <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>
@@ -137,14 +137,14 @@ export default function HomePage() {
           })()}
 
           <Link href="/invest" className="group">
-            <div className="bg-white border border-gray-200 rounded-2xl card-shadow hover:shadow-lg hover:border-amber-200 transition-all p-6 h-full flex flex-col">
-              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+            <div className="bg-white border-2 border-gray-200 rounded-2xl card-shadow p-6 h-full flex flex-col transition-all duration-200 ease-out group-hover:-translate-y-1 group-hover:border-amber-300 group-hover:shadow-xl group-hover:shadow-amber-100 group-hover:bg-amber-50/30 group-active:translate-y-0 group-active:shadow-md">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 transition-all duration-200 group-hover:bg-amber-500 group-hover:text-white group-hover:scale-110">
                 <TrendingUp className="w-6 h-6" />
               </div>
               <div className="text-base font-bold text-gray-900 mb-1">{t('nav.module.olahsaham')}</div>
               <div className="text-xs text-gray-400 mb-5">{t('nav.module.olahsahamDesc')}</div>
 
-              <div className="mt-auto pt-4 border-t border-gray-100">
+              <div className="mt-auto pt-4 border-t border-gray-100 group-hover:border-amber-100 transition-colors">
                 <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{t('home.saham.stat')}</div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-bold text-gray-900">
@@ -159,7 +159,7 @@ export default function HomePage() {
                 <div className="text-[11px] text-gray-400 mt-1">{buyCount} {t('home.signalsBuy')}</div>
               </div>
 
-              <div className="flex items-center gap-1 text-xs font-semibold text-amber-600 mt-4 group-hover:gap-1.5 transition-all">
+              <div className="flex items-center gap-1 text-xs font-semibold text-amber-600 mt-4 group-hover:gap-2 group-hover:text-amber-700 transition-all">
                 {t('home.saham.cta')} <ArrowRight className="w-3.5 h-3.5" />
               </div>
             </div>
