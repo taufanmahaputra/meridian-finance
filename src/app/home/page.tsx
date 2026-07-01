@@ -7,6 +7,8 @@ import { LayoutGrid, TrendingUp, ArrowRight, LogOut } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { getSignals } from '@/lib/investSignals';
 import { fmt, getTrendData } from '@/lib/calculations';
+import { ADMIN_EMAIL } from '@/lib/constants';
+import { BetaAccessModal } from '@/components/BetaAccessModal';
 
 const GREETINGS_EN = [
   'How\'s your day going?',
@@ -36,6 +38,8 @@ export default function HomePage() {
   const { user, months, currency, language, t, signOut } = useFinance();
   const router = useRouter();
   const [market, setMarket] = useState<MarketResponse | null>(null);
+  const [betaModalOpen, setBetaModalOpen] = useState(false);
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
     fetch('/api/market').then((res) => res.json()).then(setMarket).catch(() => {});
@@ -91,33 +95,46 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-2xl">
-          <Link href="/dashboard" className="group">
-            <div className="bg-white border border-gray-200 rounded-2xl card-shadow hover:shadow-lg hover:border-indigo-200 transition-all p-6 h-full flex flex-col">
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
-                <LayoutGrid className="w-6 h-6" />
-              </div>
-              <div className="text-base font-bold text-gray-900 mb-1">{t('nav.module.olahatur')}</div>
-              <div className="text-xs text-gray-400 mb-5">{t('nav.module.olahaturDesc')}</div>
-
-              <div className="mt-auto pt-4 border-t border-gray-100">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{t('home.atur.stat')}</div>
-                {lastMonth ? (
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-gray-900">{fmt(lastMonth.savings, currency)}</span>
-                    {savingsTrend && savingsTrend.text !== '--' && (
-                      <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${savingsTrend.className}`}>{savingsTrend.text}</span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-xs text-gray-400">{t('home.noData')}</div>
+          {(() => {
+            const cardBody = (
+              <div className="relative bg-white border border-gray-200 rounded-2xl card-shadow hover:shadow-lg hover:border-indigo-200 transition-all p-6 h-full flex flex-col">
+                {!isAdmin && (
+                  <span className="absolute top-4 right-4 text-[9px] font-bold tracking-widest px-2 py-1 rounded-full bg-amber-100 text-amber-700">
+                    {t('beta.badge')}
+                  </span>
                 )}
-              </div>
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+                  <LayoutGrid className="w-6 h-6" />
+                </div>
+                <div className="text-base font-bold text-gray-900 mb-1">{t('nav.module.olahatur')}</div>
+                <div className="text-xs text-gray-400 mb-5">{t('nav.module.olahaturDesc')}</div>
 
-              <div className="flex items-center gap-1 text-xs font-semibold text-indigo-600 mt-4 group-hover:gap-1.5 transition-all">
-                {t('home.atur.cta')} <ArrowRight className="w-3.5 h-3.5" />
+                <div className="mt-auto pt-4 border-t border-gray-100">
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">{t('home.atur.stat')}</div>
+                  {lastMonth ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-bold text-gray-900">{fmt(lastMonth.savings, currency)}</span>
+                      {savingsTrend && savingsTrend.text !== '--' && (
+                        <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${savingsTrend.className}`}>{savingsTrend.text}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-400">{t('home.noData')}</div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 text-xs font-semibold text-indigo-600 mt-4 group-hover:gap-1.5 transition-all">
+                  {t('home.atur.cta')} <ArrowRight className="w-3.5 h-3.5" />
+                </div>
               </div>
-            </div>
-          </Link>
+            );
+
+            return isAdmin ? (
+              <Link href="/dashboard" className="group">{cardBody}</Link>
+            ) : (
+              <button onClick={() => setBetaModalOpen(true)} className="group text-left w-full">{cardBody}</button>
+            );
+          })()}
 
           <Link href="/invest" className="group">
             <div className="bg-white border border-gray-200 rounded-2xl card-shadow hover:shadow-lg hover:border-amber-200 transition-all p-6 h-full flex flex-col">
@@ -149,6 +166,8 @@ export default function HomePage() {
           </Link>
         </div>
       </div>
+
+      <BetaAccessModal open={betaModalOpen} onClose={() => setBetaModalOpen(false)} />
     </div>
   );
 }

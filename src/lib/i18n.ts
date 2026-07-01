@@ -103,6 +103,13 @@ const en: Dict = {
   'invest.watchlist.showAll': 'All',
   'invest.watchlist.signalsCount': 'signals',
 
+  'beta.badge': 'BETA',
+  'beta.title': 'OlahAtur is still in development',
+  'beta.desc': "This module isn't open yet — but if you're interested, message me on WhatsApp and I'll open beta access for you.",
+  'beta.whatsappButton': 'Message me on WhatsApp',
+  'beta.whatsappMessage': "Hi! I'd like to try the OlahAtur beta on OlahDana.",
+  'beta.close': 'Close',
+
   'common.upload': 'Upload',
   'common.addMonth': '+ Add Month',
   'common.signOut': 'Sign out',
@@ -400,6 +407,13 @@ const id: Dict = {
   'invest.watchlist.rowsPerPage': 'Baris per halaman',
   'invest.watchlist.showAll': 'Semua',
   'invest.watchlist.signalsCount': 'sinyal',
+
+  'beta.badge': 'BETA',
+  'beta.title': 'OlahAtur masih dalam pengembangan',
+  'beta.desc': 'Modul ini belum dibuka untuk umum — tapi kalau kamu tertarik, kirim pesan WhatsApp dan aku akan bukakan akses beta untuk kamu.',
+  'beta.whatsappButton': 'Kirim Pesan WhatsApp',
+  'beta.whatsappMessage': 'Halo! Saya tertarik untuk mencoba beta OlahAtur di OlahDana.',
+  'beta.close': 'Tutup',
 
   'common.upload': 'Unggah',
   'common.addMonth': '+ Tambah Bulan',

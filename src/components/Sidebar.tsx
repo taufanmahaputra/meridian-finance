@@ -11,6 +11,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
 import { useFinance } from '@/lib/FinanceContext';
+import { ADMIN_EMAIL } from '@/lib/constants';
+import { BetaAccessModal } from '@/components/BetaAccessModal';
 
 const olahAturSections = [
   {
@@ -79,14 +81,20 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { open, close } = useSidebar();
-  const { t } = useFinance();
+  const { t, user } = useFinance();
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [betaModalOpen, setBetaModalOpen] = useState(false);
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const activeModule = MODULES.find((m) => m.match(pathname)) ?? MODULES[0];
   const navSections = activeModule.id === 'saham' ? olahSahamSections : olahAturSections;
 
-  function selectModule(home: string) {
+  function selectModule(moduleId: string, home: string) {
     setSwitcherOpen(false);
+    if (moduleId === 'atur' && !isAdmin) {
+      setBetaModalOpen(true);
+      return;
+    }
     router.push(home);
     close();
   }
@@ -137,10 +145,11 @@ export function Sidebar() {
               <div className="absolute left-3 right-3 top-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-[60]">
                 {MODULES.map((m) => {
                   const isActive = m.id === activeModule.id;
+                  const showBeta = m.id === 'atur' && !isAdmin;
                   return (
                     <button
                       key={m.id}
-                      onClick={() => selectModule(m.home)}
+                      onClick={() => selectModule(m.id, m.home)}
                       className={cn(
                         'w-full flex items-center gap-2.5 px-3 py-2.5 transition-colors text-left',
                         isActive ? 'bg-gray-50' : 'hover:bg-gray-50'
@@ -150,7 +159,14 @@ export function Sidebar() {
                         <m.icon className="w-[17px] h-[17px]" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold text-gray-900 truncate">{t(m.nameKey)}</div>
+                        <div className="text-[13px] font-semibold text-gray-900 truncate flex items-center gap-1.5">
+                          {t(m.nameKey)}
+                          {showBeta && (
+                            <span className="text-[8px] font-bold tracking-widest px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                              {t('beta.badge')}
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[10px] text-gray-400 truncate">{t(m.descKey)}</div>
                       </div>
                       {isActive && <Check className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
@@ -210,6 +226,8 @@ export function Sidebar() {
           {t('nav.footerSub')}
         </div>
       </aside>
+
+      <BetaAccessModal open={betaModalOpen} onClose={() => setBetaModalOpen(false)} />
     </>
   );
 }

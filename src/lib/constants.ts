@@ -48,3 +48,14 @@ export const CURRENCY_SYMBOLS: Record<string, string> = Object.fromEntries(
 export const ADMIN_EMAIL = 'hacker.indo62@gmail.com';
 
 export const MAX_SIGNAL_BATCHES = 3;
+
+// OlahAtur is in closed beta — only ADMIN_EMAIL can access these routes.
+// Everyone else is bounced to /home and shown the beta-access modal.
+export const OLAHATUR_BETA_PATHS = [
+  '/dashboard', '/monthly', '/transactions', '/budget', '/forecast', '/insights', '/upload',
+];
+
+export const WHATSAPP_NUMBER = '6289684679315';
+export function whatsappLink(message: string): string {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}

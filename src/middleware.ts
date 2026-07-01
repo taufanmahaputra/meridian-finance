@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { ADMIN_EMAIL, OLAHATUR_BETA_PATHS } from '@/lib/constants';
 
 const publicPaths = ['/login', '/auth/callback'];
 
@@ -38,6 +39,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && request.nextUrl.pathname === '/login') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/home';
+    return NextResponse.redirect(url);
+  }
+
+  const isOlahAturPath = OLAHATUR_BETA_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
+  if (user && isOlahAturPath && user.email !== ADMIN_EMAIL) {
     const url = request.nextUrl.clone();
     url.pathname = '/home';
     return NextResponse.redirect(url);
