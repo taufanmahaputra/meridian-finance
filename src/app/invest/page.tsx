@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useFinance } from '@/lib/FinanceContext';
 import { createClient } from '@/lib/supabase';
@@ -38,11 +38,13 @@ export default function InvestDashboardPage() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [latestBatch, setLatestBatch] = useState<SignalBatch | null>(null);
   const [quotes, setQuotes] = useState<Record<string, number | null>>({});
+  const [commentary, setCommentary] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/ihsg-intraday').then((r) => r.json()).then(setIntraday).catch(() => {});
     fetch('/api/market-news').then((r) => r.json()).then((d) => setNews(d.news ?? [])).catch(() => {});
-  }, []);
+    fetch(`/api/market-commentary?lang=${language}`).then((r) => r.json()).then((d) => setCommentary(d.commentary ?? null)).catch(() => {});
+  }, [language]);
 
   const loadLatestBatch = useCallback(async () => {
     const { data } = await supabase
@@ -109,6 +111,14 @@ export default function InvestDashboardPage() {
             {t(`invest.mood.${mood}`)}
           </div>
           <p className="text-sm text-gray-600 max-w-xl">{t(`invest.mood.${mood}.desc`)}</p>
+          {commentary && (
+            <div className="mt-4 pt-4 border-t border-black/5 max-w-2xl">
+              <p className="text-[13px] text-gray-700 leading-relaxed font-medium">{commentary}</p>
+              <span className="inline-flex items-center gap-1 text-[10px] text-gray-400 mt-2">
+                <Sparkles className="w-3 h-3" /> {t('invest.commentary.aiLabel')}
+              </span>
+            </div>
+          )}
           <p className="text-[11px] text-gray-400 mt-3">{t('invest.mood.basis')}</p>
         </div>
 

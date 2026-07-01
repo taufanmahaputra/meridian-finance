@@ -74,6 +74,11 @@ const en: Dict = {
   'invest.news.updated': 'Updated',
   'invest.news.sources': 'Sources: CNBC Indonesia, Antara News — refreshed every 30 minutes',
 
+  'invest.commentary.title': "Analyst's Take",
+  'invest.commentary.aiLabel': 'AI-generated, based on real data',
+  'invest.commentary.loading': "Generating today's take…",
+  'invest.commentary.unavailable': 'Commentary unavailable right now — check back shortly.',
+
   'invest.signals.title': 'Signals',
   'invest.signals.heading': 'Investment Signals',
   'invest.signals.subtitle': 'Rule-based buy / hold / watch signals across major asset classes — not personalized financial advice',
@@ -399,6 +404,11 @@ const id: Dict = {
   'invest.news.bottomLine': 'Kesimpulan',
   'invest.news.updated': 'Diperbarui',
   'invest.news.sources': 'Sumber: CNBC Indonesia, Antara News — diperbarui tiap 30 menit',
+
+  'invest.commentary.title': 'Pandangan Analis',
+  'invest.commentary.aiLabel': 'Dibuat AI, berdasarkan data nyata',
+  'invest.commentary.loading': 'Menyiapkan pandangan hari ini…',
+  'invest.commentary.unavailable': 'Pandangan belum tersedia saat ini — cek lagi sebentar.',
   'invest.dashboard.watch': 'Pantau',
 
   'invest.signals.title': 'Sinyal',

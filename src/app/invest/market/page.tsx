@@ -1,13 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Sparkles } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { NewsItem, NewsCategory } from '@/lib/marketNews';
+
+interface CommentaryResponse {
+  commentary: string | null;
+  generatedAt: string;
+}
 
 interface QuotePoint {
   value: number | null;
@@ -51,6 +56,7 @@ export default function MarketPage() {
   const { t, language } = useFinance();
   const [data, setData] = useState<MarketResponse | null>(null);
   const [newsData, setNewsData] = useState<NewsResponse | null>(null);
+  const [commentary, setCommentary] = useState<CommentaryResponse | null>(null);
   const [error, setError] = useState(false);
   const isId = language === 'id';
 
@@ -63,7 +69,11 @@ export default function MarketPage() {
       .then((res) => res.json())
       .then(setNewsData)
       .catch(() => {});
-  }, []);
+    fetch(`/api/market-commentary?lang=${language}`)
+      .then((res) => res.json())
+      .then(setCommentary)
+      .catch(() => {});
+  }, [language]);
 
   const marketKpis = [
     { icon: <span>🇮🇩</span>, iconBg: 'bg-indigo-50', label: 'IHSG (IDX Composite)', value: data?.ihsg.value != null ? data.ihsg.value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '—', trendText: trendText(data?.ihsg.ytdPct ?? null), trendClassName: trendClass(data?.ihsg.ytdPct ?? null) },
@@ -108,6 +118,25 @@ export default function MarketPage() {
             <KpiCard key={k.label} {...k} trendSuffix="" />
           ))}
         </div>
+
+        <Card className="mb-6 border-indigo-100">
+          <CardHeader action={
+            <span className="inline-flex items-center gap-1 text-[10px] text-gray-400">
+              <Sparkles className="w-3 h-3" /> {t('invest.commentary.aiLabel')}
+            </span>
+          }>
+            {t('invest.commentary.title')}
+          </CardHeader>
+          <CardBody>
+            {commentary === null ? (
+              <p className="text-sm text-gray-400">{t('invest.commentary.loading')}</p>
+            ) : commentary.commentary ? (
+              <p className="text-[14px] text-gray-800 leading-relaxed font-medium">{commentary.commentary}</p>
+            ) : (
+              <p className="text-sm text-gray-400">{t('invest.commentary.unavailable')}</p>
+            )}
+          </CardBody>
+        </Card>
 
         <Card className="mb-6">
           <CardHeader>{t('invest.news.bottomLine')}</CardHeader>
