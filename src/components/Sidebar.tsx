@@ -254,24 +254,26 @@ export function Sidebar() {
               })}
             </div>
           ))}
-          <div className="pt-4">
-            <Link
-              href="/settings"
-              onClick={close}
-              title={collapsed ? t('nav.settings') : undefined}
-              className={cn(
-                'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5',
-                collapsed && 'md:justify-center',
-                pathname === '/settings'
-                  ? 'bg-indigo-500/15 text-indigo-300 font-semibold'
-                  : 'text-white/50 hover:bg-white/5 hover:text-white'
-              )}
-            >
-              <Settings className="w-[18px] h-[18px] flex-shrink-0" />
-              <span className={cn(collapsed && 'md:hidden')}>{t('nav.settings')}</span>
-            </Link>
-          </div>
         </nav>
+
+        <div className="px-3 py-3 border-t border-white/10">
+          <Link
+            href="/settings"
+            onClick={close}
+            title={collapsed ? t('nav.settings') : undefined}
+            className={cn(
+              'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors',
+              collapsed && 'md:justify-center',
+              pathname === '/settings'
+                ? 'bg-indigo-500/15 text-indigo-300 font-semibold'
+                : 'text-white/50 hover:bg-white/5 hover:text-white'
+            )}
+          >
+            <Settings className="w-[18px] h-[18px] flex-shrink-0" />
+            <span className={cn(collapsed && 'md:hidden')}>{t('nav.settings')}</span>
+          </Link>
+        </div>
+
         <div className={cn('px-5 py-4 border-t border-white/10 text-[11px] text-white/30', collapsed && 'md:hidden')}>
           {t('nav.footer')}<br />
           {t('nav.footerSub')}
