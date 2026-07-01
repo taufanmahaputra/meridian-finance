@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, LogOut } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
-import { getSignals } from '@/lib/investSignals';
+import { createClient } from '@/lib/supabase';
+import { evaluateSignal, type StockSignal } from '@/lib/stockSignals';
 import { fmt, getTrendData } from '@/lib/calculations';
 import { ADMIN_EMAIL } from '@/lib/constants';
 import { BetaAccessModal } from '@/components/BetaAccessModal';
@@ -40,12 +41,34 @@ interface MarketResponse {
 export default function HomePage() {
   const { user, months, currency, language, t, signOut } = useFinance();
   const router = useRouter();
+  const supabase = createClient();
   const [market, setMarket] = useState<MarketResponse | null>(null);
+  const [buyCount, setBuyCount] = useState<number | null>(null);
   const [betaModalOpen, setBetaModalOpen] = useState(false);
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
     fetch('/api/market').then((res) => res.json()).then(setMarket).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    async function loadWatchlistBuyCount() {
+      const { data } = await supabase
+        .from('stock_signals')
+        .select('*')
+        .order('batch_date', { ascending: false })
+        .limit(30);
+      if (!data || data.length === 0) return;
+      const latestDate = data[0].batch_date;
+      const signals: StockSignal[] = data.filter((row) => row.batch_date === latestDate);
+      const tickers = signals.map((s) => s.ticker).join(',');
+      const quotesRes = await fetch(`/api/stock-quotes?tickers=${tickers}`).then((r) => r.json()).catch(() => ({ quotes: {} }));
+      const quotes: Record<string, number | null> = quotesRes.quotes ?? {};
+      const buys = signals.filter((s) => evaluateSignal(s.entries ?? [], s.note, quotes[s.ticker] ?? null).state === 'buy').length;
+      setBuyCount(buys);
+    }
+    loadWatchlistBuyCount();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSignOut() {
@@ -60,9 +83,6 @@ export default function HomePage() {
   const lastMonth = months.length > 0 ? months[months.length - 1] : null;
   const prevMonth = months.length > 1 ? months[months.length - 2] : null;
   const savingsTrend = lastMonth ? getTrendData(lastMonth.savings, prevMonth?.savings ?? null) : null;
-
-  const signals = getSignals(language);
-  const buyCount = signals.filter((s) => s.signal === 'buy').length;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -161,7 +181,7 @@ export default function HomePage() {
                     </span>
                   )}
                 </div>
-                <div className="text-[11px] text-gray-400 mt-1">{buyCount} {t('home.signalsBuy')}</div>
+                <div className="text-[11px] text-gray-400 mt-1">{buyCount ?? '—'} {t('home.signalsBuy')}</div>
               </div>
 
               <div className="flex items-center gap-1 text-xs font-semibold text-blue-600 mt-4 group-hover:gap-2 group-hover:text-blue-700 transition-all">
