@@ -43,3 +43,8 @@ export const DEFAULT_CURRENCY = 'IDR';
 export const CURRENCY_SYMBOLS: Record<string, string> = Object.fromEntries(
   CURRENCIES.map((c) => [c.code, c.symbol])
 );
+
+// Only this account can post/edit/delete the community stock signal watchlist.
+export const ADMIN_EMAIL = 'hacker.indo62@gmail.com';
+
+export const MAX_SIGNAL_BATCHES = 3;

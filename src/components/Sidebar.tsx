@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutGrid, DollarSign, CheckCircle, Activity,
   Lightbulb, TrendingUp, Upload, X, CalendarDays, Settings,
-  Signal, Compass, ChevronDown, Check,
+  Signal, Compass, ChevronDown, Check, ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
@@ -43,6 +43,7 @@ const olahSahamSections = [
     items: [
       { href: '/invest', labelKey: 'invest.dashboard.title', icon: LayoutGrid },
       { href: '/invest/signals', labelKey: 'invest.signals.title', icon: Signal },
+      { href: '/invest/signals/watchlist', labelKey: 'invest.watchlist.title', icon: ListChecks },
       { href: '/invest/market', labelKey: 'nav.market', icon: TrendingUp },
       { href: '/invest/decision', labelKey: 'invest.decision.title', icon: Compass },
     ],
