@@ -99,6 +99,9 @@ const en: Dict = {
   'invest.watchlist.empty.title': 'No signals posted yet',
   'invest.watchlist.empty.desc': 'Check back soon for the latest community watchlist.',
   'invest.watchlist.noValidLines': 'No valid lines detected — check the format and try again.',
+  'invest.watchlist.rowsPerPage': 'Rows per page',
+  'invest.watchlist.showAll': 'All',
+  'invest.watchlist.signalsCount': 'signals',
 
   'common.upload': 'Upload',
   'common.addMonth': '+ Add Month',
@@ -394,6 +397,9 @@ const id: Dict = {
   'invest.watchlist.empty.title': 'Belum ada sinyal yang diposting',
   'invest.watchlist.empty.desc': 'Cek lagi nanti untuk watchlist komunitas terbaru.',
   'invest.watchlist.noValidLines': 'Tidak ada baris valid terdeteksi — cek formatnya lalu coba lagi.',
+  'invest.watchlist.rowsPerPage': 'Baris per halaman',
+  'invest.watchlist.showAll': 'Semua',
+  'invest.watchlist.signalsCount': 'sinyal',
 
   'common.upload': 'Unggah',
   'common.addMonth': '+ Tambah Bulan',

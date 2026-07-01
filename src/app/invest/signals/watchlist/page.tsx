@@ -45,6 +45,9 @@ function TickerLogo({ ticker }: { ticker: string }) {
   );
 }
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 'all'] as const;
+type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
+
 const STATE_BADGE_VARIANT = {
   buy: 'success',
   avoid: 'danger',
@@ -87,6 +90,10 @@ export default function WatchlistPage() {
   const [posting, setPosting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [quotes, setQuotes] = useState<Record<string, number | null>>({});
+  // 10 rows/page keeps a batch to roughly one screen before scrolling; users
+  // can bump it up (or pick "all") if they'd rather see everything at once.
+  const [pageSize, setPageSize] = useState<PageSize>(10);
+  const [pageByBatch, setPageByBatch] = useState<Record<string, number>>({});
 
   const preview = useMemo(() => parseSignalText(pasteText), [pasteText]);
   const allTickers = useMemo(
@@ -192,6 +199,11 @@ export default function WatchlistPage() {
     await loadBatches();
   }
 
+  function handlePageSizeChange(next: PageSize) {
+    setPageSize(next);
+    setPageByBatch({});
+  }
+
   function formatDate(dateStr: string) {
     return new Date(`${dateStr}T00:00:00`).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -276,75 +288,119 @@ export default function WatchlistPage() {
           <EmptyState title={t('invest.watchlist.empty.title')} description={t('invest.watchlist.empty.desc')} />
         )}
 
+        {batches.length > 0 && (
+          <div className="flex items-center justify-end gap-2 mb-3">
+            <span className="text-xs text-gray-400">{t('invest.watchlist.rowsPerPage')}</span>
+            <select
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange((e.target.value === 'all' ? 'all' : Number(e.target.value)) as PageSize)}
+              className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus:border-indigo-400 outline-none"
+            >
+              {PAGE_SIZE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt === 'all' ? t('invest.watchlist.showAll') : opt}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="space-y-6">
-          {batches.map((batch) => (
-            <Card key={batch.batchDate}>
-              <CardHeader action={
-                isAdmin ? (
-                  <button
-                    onClick={() => handleDeleteBatch(batch.batchDate)}
-                    className="text-gray-300 hover:text-red-500 transition-colors"
-                    title={t('invest.watchlist.deleteBatch')}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <Badge variant="neutral">{batch.signals.length}</Badge>
-                )
-              }>
-                <span className="text-base">{formatDate(batch.batchDate)}</span>
-              </CardHeader>
-              <CardBody compact>
-                <div className={cn('hidden sm:grid sm:gap-4 items-center px-5 py-2.5 bg-gray-50 border-b border-gray-200', GRID_COLS)}>
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.ticker')}</span>
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.entries')}</span>
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.price')}</span>
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.note')}</span>
-                </div>
-                {batch.signals.map((s, idx) => (
-                  <div
-                    key={s.id}
-                    className={cn(
-                      'flex flex-col gap-3 px-5 py-4 transition-colors sm:grid sm:gap-4 sm:items-center',
-                      GRID_COLS,
-                      idx % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40',
-                      idx !== batch.signals.length - 1 && 'border-b border-gray-100'
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <TickerLogo ticker={s.ticker} />
-                      <span className="text-base font-bold text-gray-900 tracking-wide">{s.ticker}</span>
-                    </div>
+          {batches.map((batch) => {
+            const effectiveSize = pageSize === 'all' ? batch.signals.length : pageSize;
+            const totalPages = Math.max(1, Math.ceil(batch.signals.length / effectiveSize));
+            const currentPage = Math.min(pageByBatch[batch.batchDate] ?? 0, totalPages - 1);
+            const pageSignals = pageSize === 'all'
+              ? batch.signals
+              : batch.signals.slice(currentPage * effectiveSize, (currentPage + 1) * effectiveSize);
 
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {s.entries.map((entry, i) => {
-                        const style = LEVEL_STYLES[i % LEVEL_STYLES.length];
-                        return (
-                          <div key={i} className={cn('flex flex-col items-center px-3 py-1.5 rounded-lg border min-w-[76px]', style.bg, style.border)}>
-                            <span className={cn('text-[9px] font-semibold uppercase tracking-wide', style.label)}>
-                              {s.entries.length > 1 ? `E${i + 1}` : t('invest.watchlist.table.entries').split(' ')[0]}
-                            </span>
-                            <span className={cn('text-sm font-bold font-mono', style.text)}>{entry.toLocaleString('id-ID')}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <PriceStatusCell entries={s.entries} note={s.note} price={quotes[s.ticker]} labels={statusLabels} />
-
-                    {s.note ? (
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium w-fit sm:w-full" title={s.note}>
-                        <Zap className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate">{s.note}</span>
-                      </div>
-                    ) : (
-                      <span className="hidden sm:block text-gray-300 text-xs">—</span>
-                    )}
+            return (
+              <Card key={batch.batchDate}>
+                <CardHeader action={
+                  isAdmin ? (
+                    <button
+                      onClick={() => handleDeleteBatch(batch.batchDate)}
+                      className="text-gray-300 hover:text-red-500 transition-colors"
+                      title={t('invest.watchlist.deleteBatch')}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <Badge variant="neutral">{batch.signals.length}</Badge>
+                  )
+                }>
+                  <span className="text-base">{formatDate(batch.batchDate)}</span>
+                </CardHeader>
+                <CardBody compact>
+                  <div className={cn('hidden sm:grid sm:gap-4 items-center px-5 py-2.5 bg-gray-50 border-b border-gray-200', GRID_COLS)}>
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.ticker')}</span>
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.entries')}</span>
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.price')}</span>
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t('invest.watchlist.table.note')}</span>
                   </div>
-                ))}
-              </CardBody>
-            </Card>
-          ))}
+                  {pageSignals.map((s, idx) => (
+                    <div
+                      key={s.id}
+                      className={cn(
+                        'flex flex-col gap-3 px-5 py-4 transition-colors sm:grid sm:gap-4 sm:items-center',
+                        GRID_COLS,
+                        idx % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40',
+                        idx !== pageSignals.length - 1 && 'border-b border-gray-100'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <TickerLogo ticker={s.ticker} />
+                        <span className="text-base font-bold text-gray-900 tracking-wide">{s.ticker}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {s.entries.map((entry, i) => {
+                          const style = LEVEL_STYLES[i % LEVEL_STYLES.length];
+                          return (
+                            <div key={i} className={cn('flex flex-col items-center px-3 py-1.5 rounded-lg border min-w-[76px]', style.bg, style.border)}>
+                              <span className={cn('text-[9px] font-semibold uppercase tracking-wide', style.label)}>
+                                {s.entries.length > 1 ? `E${i + 1}` : t('invest.watchlist.table.entries').split(' ')[0]}
+                              </span>
+                              <span className={cn('text-sm font-bold font-mono', style.text)}>{entry.toLocaleString('id-ID')}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <PriceStatusCell entries={s.entries} note={s.note} price={quotes[s.ticker]} labels={statusLabels} />
+
+                      {s.note ? (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium w-fit sm:w-full" title={s.note}>
+                          <Zap className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="truncate">{s.note}</span>
+                        </div>
+                      ) : (
+                        <span className="hidden sm:block text-gray-300 text-xs">—</span>
+                      )}
+                    </div>
+                  ))}
+
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+                      <span className="text-xs text-gray-400">{batch.signals.length} {t('invest.watchlist.signalsCount')}</span>
+                      <div className="flex gap-1.5">
+                        {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setPageByBatch((prev) => ({ ...prev, [batch.batchDate]: i }))}
+                            className={cn(
+                              'px-2.5 py-1 text-xs rounded-md font-medium',
+                              i === currentPage ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            )}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardBody>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </>
