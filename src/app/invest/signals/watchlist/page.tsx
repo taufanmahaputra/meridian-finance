@@ -14,10 +14,12 @@ import { cn } from '@/lib/utils';
 
 // Entry levels are color-coded by position so the same color always means
 // the same thing across every ticker: 1st entry, 2nd (pullback), 3rd.
+// Color lives on the text only — the levels share one bordered container
+// instead of each getting its own bg+border box.
 const LEVEL_STYLES = [
-  { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', label: 'text-indigo-500' },
-  { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', label: 'text-emerald-500' },
-  { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', label: 'text-amber-500' },
+  { text: 'text-indigo-600', label: 'text-indigo-400' },
+  { text: 'text-emerald-600', label: 'text-emerald-400' },
+  { text: 'text-amber-600', label: 'text-amber-400' },
 ];
 
 // Both the header and each row share this template so columns line up exactly.
@@ -351,19 +353,23 @@ export default function WatchlistPage() {
                         <span className="text-base font-bold text-gray-900 tracking-wide">{s.ticker}</span>
                       </div>
 
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {s.entries.map((entry, i) => {
-                          const style = LEVEL_STYLES[i % LEVEL_STYLES.length];
-                          return (
-                            <div key={i} className={cn('flex flex-col items-center px-3 py-1.5 rounded-lg border min-w-[76px]', style.bg, style.border)}>
-                              <span className={cn('text-[9px] font-semibold uppercase tracking-wide', style.label)}>
-                                {s.entries.length > 1 ? `E${i + 1}` : t('invest.watchlist.table.entries').split(' ')[0]}
-                              </span>
-                              <span className={cn('text-sm font-bold font-mono', style.text)}>{entry.toLocaleString('id-ID')}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      {s.entries.length > 1 ? (
+                        <div className="flex items-stretch divide-x divide-gray-100 border border-gray-200 rounded-lg overflow-hidden w-fit">
+                          {s.entries.map((entry, i) => {
+                            const style = LEVEL_STYLES[i % LEVEL_STYLES.length];
+                            return (
+                              <div key={i} className="flex flex-col items-center justify-center px-2.5 py-1 min-w-[64px]">
+                                <span className={cn('text-[8px] font-semibold uppercase tracking-wide', style.label)}>E{i + 1}</span>
+                                <span className={cn('text-xs font-bold font-mono', style.text)}>{entry.toLocaleString('id-ID')}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-sm font-bold font-mono text-gray-900">
+                          {s.entries[0]?.toLocaleString('id-ID') ?? '—'}
+                        </span>
+                      )}
 
                       <PriceStatusCell entries={s.entries} note={s.note} price={quotes[s.ticker]} labels={statusLabels} />
 
