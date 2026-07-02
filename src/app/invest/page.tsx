@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, Bell } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useFinance } from '@/lib/FinanceContext';
 import { createClient } from '@/lib/supabase';
@@ -31,14 +31,44 @@ const MOOD_STYLES: Record<MarketMood, { bg: string; text: string; ring: string }
   uncertain: { bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-200' },
 };
 
+// Snapshot of what the user saw last time, so the dashboard can surface
+// what's actually new instead of repeating the same static market view.
+interface VisitSnapshot {
+  timestamp: number;
+  buyTickers: string[];
+  ihsgPrice: number | null;
+}
+const VISIT_STORAGE_KEY = 'olahdana:investLastVisit';
+
+function timeAgo(ts: number, lang: string) {
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return lang === 'id' ? 'baru saja' : 'just now';
+  if (mins < 60) return lang === 'id' ? `${mins} menit lalu` : `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return lang === 'id' ? `${hours} jam lalu` : `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return lang === 'id' ? `${days} hari lalu` : `${days}d ago`;
+}
+
 export default function InvestDashboardPage() {
   const { t, language } = useFinance();
   const supabase = createClient();
   const [intraday, setIntraday] = useState<IntradayResponse | null>(null);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [latestBatch, setLatestBatch] = useState<SignalBatch | null>(null);
+  const [batchesLoaded, setBatchesLoaded] = useState(false);
   const [quotes, setQuotes] = useState<Record<string, number | null>>({});
   const [commentary, setCommentary] = useState<string | null>(null);
+  const [previousVisit] = useState<VisitSnapshot | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = window.localStorage.getItem(VISIT_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as VisitSnapshot) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [visitSaved, setVisitSaved] = useState(false);
 
   useEffect(() => {
     fetch('/api/ihsg-intraday').then((r) => r.json()).then(setIntraday).catch(() => {});
@@ -53,7 +83,10 @@ export default function InvestDashboardPage() {
       .order('batch_date', { ascending: false })
       .order('sort_order', { ascending: true })
       .limit(30);
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) {
+      setBatchesLoaded(true);
+      return;
+    }
     const latestDate = data[0].batch_date;
     const signals: StockSignal[] = data
       .filter((row) => row.batch_date === latestDate)
@@ -63,6 +96,7 @@ export default function InvestDashboardPage() {
       }))
       .sort((a, b) => a.ticker.localeCompare(b.ticker));
     setLatestBatch({ batchDate: latestDate, signals });
+    setBatchesLoaded(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -96,6 +130,35 @@ export default function InvestDashboardPage() {
     { buy: 0, avoid: 0 }
   );
 
+  const currentBuyTickers = (latestBatch?.signals ?? [])
+    .filter((s) => evaluateSignal(s.entries, s.note, quotes[s.ticker] ?? null).state === 'buy')
+    .map((s) => s.ticker);
+
+  // Snapshot what the user is seeing right now, once everything relevant
+  // has actually loaded — this becomes "previousVisit" the next time they
+  // open the dashboard, so we can point out exactly what changed.
+  useEffect(() => {
+    if (visitSaved || !batchesLoaded || intraday === null) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVisitSaved(true);
+    const snapshot: VisitSnapshot = {
+      timestamp: Date.now(),
+      buyTickers: currentBuyTickers,
+      ihsgPrice: intraday.price,
+    };
+    window.localStorage.setItem(VISIT_STORAGE_KEY, JSON.stringify(snapshot));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visitSaved, batchesLoaded, intraday]);
+
+  const newBuyTickers = previousVisit ? currentBuyTickers.filter((tk) => !previousVisit.buyTickers.includes(tk)) : [];
+  const newHeadlinesCount = previousVisit
+    ? news.filter((n) => new Date(n.publishedAt).getTime() > previousVisit.timestamp).length
+    : 0;
+  const ihsgDeltaPct = previousVisit?.ihsgPrice != null && intraday?.price != null
+    ? ((intraday.price - previousVisit.ihsgPrice) / previousVisit.ihsgPrice) * 100
+    : null;
+  const hasVisitChanges = newBuyTickers.length > 0 || newHeadlinesCount > 0 || (ihsgDeltaPct != null && Math.abs(ihsgDeltaPct) >= 0.05);
+
   function formatChartTime(ms: number) {
     return new Date(ms).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' });
   }
@@ -104,6 +167,37 @@ export default function InvestDashboardPage() {
     <>
       <Topbar title={t('invest.dashboard.title')} />
       <div className="p-4 sm:p-7 max-w-[1440px]">
+
+        {previousVisit && (
+          <div className="flex items-start sm:items-center gap-3 px-4 sm:px-5 py-3 rounded-xl bg-indigo-950 text-white mb-4 flex-wrap sm:flex-nowrap">
+            <Bell className="w-4 h-4 text-indigo-300 flex-shrink-0 mt-0.5 sm:mt-0" />
+            <div className="flex-1 min-w-0 text-[13px] font-medium leading-relaxed">
+              {hasVisitChanges ? (
+                <>
+                  <span className="text-white/50">{t('invest.dashboard.sinceLastVisit')}</span>{' '}
+                  {newBuyTickers.length > 0 && (
+                    <span className="text-emerald-300 font-semibold">
+                      {newBuyTickers.length} {t('invest.dashboard.newBuySignals')} ({newBuyTickers.join(', ')})
+                    </span>
+                  )}
+                  {newBuyTickers.length > 0 && (newHeadlinesCount > 0 || ihsgDeltaPct != null) && <span className="text-white/30"> · </span>}
+                  {newHeadlinesCount > 0 && (
+                    <span>{newHeadlinesCount} {t('invest.dashboard.newHeadlines')}</span>
+                  )}
+                  {newHeadlinesCount > 0 && ihsgDeltaPct != null && Math.abs(ihsgDeltaPct) >= 0.05 && <span className="text-white/30"> · </span>}
+                  {ihsgDeltaPct != null && Math.abs(ihsgDeltaPct) >= 0.05 && (
+                    <span className={ihsgDeltaPct >= 0 ? 'text-emerald-300' : 'text-red-300'}>
+                      IHSG {ihsgDeltaPct >= 0 ? '+' : ''}{ihsgDeltaPct.toFixed(2)}%
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-white/50">{t('invest.dashboard.noChangesSince')}</span>
+              )}
+            </div>
+            <span className="text-[10px] text-white/40 flex-shrink-0">{timeAgo(previousVisit.timestamp, language)}</span>
+          </div>
+        )}
 
         <div className={cn('rounded-2xl p-6 sm:p-8 mb-6 ring-1', moodStyle.bg, moodStyle.ring)}>
           <div className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-2">{t('invest.mood.title')}</div>

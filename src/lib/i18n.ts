@@ -53,6 +53,10 @@ const en: Dict = {
   'invest.mood.uncertain.desc': 'Signals are mixed — equities and the Rupiah are not telling the same story today.',
   'invest.mood.basis': 'Based on IHSG intraday move and Rupiah direction — a data read, not a forecast.',
 
+  'invest.dashboard.sinceLastVisit': 'Since your last visit:',
+  'invest.dashboard.newBuySignals': 'new buy signal(s)',
+  'invest.dashboard.newHeadlines': 'new headlines',
+  'invest.dashboard.noChangesSince': 'No major changes since your last visit.',
   'invest.dashboard.ihsgToday': 'IHSG Today',
   'invest.dashboard.dayHigh': 'Day High',
   'invest.dashboard.dayLow': 'Day Low',
@@ -387,6 +391,10 @@ const id: Dict = {
   'invest.mood.uncertain.desc': 'Sinyal bercampur — saham dan Rupiah tidak menunjukkan cerita yang sama hari ini.',
   'invest.mood.basis': 'Berdasarkan pergerakan intraday IHSG dan arah Rupiah — pembacaan data, bukan prediksi.',
 
+  'invest.dashboard.sinceLastVisit': 'Sejak kunjungan terakhirmu:',
+  'invest.dashboard.newBuySignals': 'sinyal buy baru',
+  'invest.dashboard.newHeadlines': 'berita baru',
+  'invest.dashboard.noChangesSince': 'Tidak ada perubahan besar sejak kunjungan terakhirmu.',
   'invest.dashboard.ihsgToday': 'IHSG Hari Ini',
   'invest.dashboard.dayHigh': 'Tertinggi Hari Ini',
   'invest.dashboard.dayLow': 'Terendah Hari Ini',
