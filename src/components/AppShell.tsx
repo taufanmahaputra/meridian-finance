@@ -21,9 +21,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { loading, t } = useFinance();
   const isLogin = pathname === '/login' || pathname.startsWith('/auth/');
+  const isLanding = pathname === '/';
   const isHome = pathname === '/home';
 
-  if (isLogin) {
+  if (isLogin || isLanding) {
     return <>{children}</>;
   }
 
