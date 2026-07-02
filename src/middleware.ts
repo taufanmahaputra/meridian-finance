@@ -5,6 +5,9 @@ import { ADMIN_EMAIL, OLAHATUR_BETA_PATHS } from '@/lib/constants';
 const publicPaths = [
   '/login', '/auth/callback',
   '/icon', '/apple-icon', '/opengraph-image', '/manifest.webmanifest', '/robots.txt',
+  // Public market data passthroughs — no user data, needed so the logged-out
+  // landing page can show real live numbers instead of a static mockup.
+  '/api/ihsg-intraday', '/api/market',
 ];
 
 export async function middleware(request: NextRequest) {
