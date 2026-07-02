@@ -118,29 +118,36 @@ export function LandingContent() {
       <div className="absolute top-0 left-0 right-0 h-[560px] bg-dot-grid [mask-image:radial-gradient(ellipse_60%_60%_at_50%_20%,black,transparent)] pointer-events-none" />
 
       <div className="relative z-10">
-        <header className="px-6 sm:px-10 py-5 flex items-center justify-between max-w-6xl mx-auto">
-          <OlahDanaLogo iconClassName="w-8 h-8" textClassName="text-lg" />
-          <div className="flex items-center gap-3">
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-[11px] font-semibold bg-white/70 backdrop-blur">
-              <button
-                onClick={() => setLanguage('en')}
-                className={cn('px-2.5 py-1.5 transition-colors', language === 'en' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50')}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => setLanguage('id')}
-                className={cn('px-2.5 py-1.5 transition-colors', language === 'id' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50')}
-              >
-                ID
-              </button>
+        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+          <div className="px-6 sm:px-10 py-4 flex items-center justify-between max-w-6xl mx-auto">
+            <div className="flex items-center gap-2.5">
+              <OlahDanaLogo iconClassName="w-10 h-10" showWordmark={false} />
+              <span className="font-geist text-2xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-700 via-blue-600 to-[#2e8b8b] bg-clip-text text-transparent">
+                OlahDana
+              </span>
             </div>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-            >
-              {t(language, 'landing.nav.signIn')}
-            </Link>
+            <div className="flex items-center gap-3">
+              <div className="flex rounded-lg border border-gray-200 overflow-hidden text-[11px] font-semibold bg-white/70 backdrop-blur">
+                <button
+                  onClick={() => setLanguage('en')}
+                  className={cn('px-2.5 py-1.5 transition-colors', language === 'en' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50')}
+                >
+                  EN
+                </button>
+                <button
+                  onClick={() => setLanguage('id')}
+                  className={cn('px-2.5 py-1.5 transition-colors', language === 'id' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50')}
+                >
+                  ID
+                </button>
+              </div>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+              >
+                {t(language, 'landing.nav.signIn')}
+              </Link>
+            </div>
           </div>
         </header>
 
