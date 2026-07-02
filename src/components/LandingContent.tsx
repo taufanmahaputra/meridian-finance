@@ -109,14 +109,11 @@ export function LandingContent() {
   })();
 
   return (
-    <div className="min-h-screen bg-white relative overflow-hidden">
-      {/* Ambient gradient blobs — drift slowly behind the hero, the closest
-          thing to "movement" a static marketing page can honestly show. */}
-      <div className="absolute -top-32 -left-32 w-[480px] h-[480px] bg-indigo-300/30 rounded-full blur-[110px] animate-blob-drift pointer-events-none" />
-      <div className="absolute -top-16 -right-24 w-[520px] h-[520px] bg-blue-300/25 rounded-full blur-[120px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-5s' }} />
-      <div className="absolute top-[28%] left-[15%] w-[380px] h-[380px] bg-[#2e8b8b]/20 rounded-full blur-[100px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-10s' }} />
-      <div className="absolute top-0 left-0 right-0 h-[560px] bg-dot-grid [mask-image:radial-gradient(ellipse_60%_60%_at_50%_20%,black,transparent)] pointer-events-none" />
-
+    // No overflow-hidden here — it's a well-known trap: an overflow-hidden
+    // ancestor breaks position:sticky on any descendant, which is why the
+    // header wasn't staying pinned. Clipping is scoped to the decorative
+    // blob wrapper below instead, which doesn't contain the header.
+    <div className="min-h-screen bg-white relative">
       <div className="relative z-10">
         <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
           <div className="px-6 sm:px-10 py-4 flex items-center justify-between max-w-6xl mx-auto">
@@ -150,6 +147,18 @@ export function LandingContent() {
             </div>
           </div>
         </header>
+
+        {/* Clipping scoped here (not on the page root) so the decorative
+            blobs can't cause horizontal overflow without breaking the
+            header's position:sticky above. */}
+        <div className="relative overflow-hidden">
+          {/* Ambient gradient blobs — drift slowly behind the hero, the
+              closest thing to "movement" a static marketing page can
+              honestly show. */}
+          <div className="absolute -top-32 -left-32 w-[480px] h-[480px] bg-indigo-300/30 rounded-full blur-[110px] animate-blob-drift pointer-events-none" />
+          <div className="absolute -top-16 -right-24 w-[520px] h-[520px] bg-blue-300/25 rounded-full blur-[120px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-5s' }} />
+          <div className="absolute top-[28%] left-[15%] w-[380px] h-[380px] bg-[#2e8b8b]/20 rounded-full blur-[100px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-10s' }} />
+          <div className="absolute top-0 left-0 right-0 h-[560px] bg-dot-grid [mask-image:radial-gradient(ellipse_60%_60%_at_50%_20%,black,transparent)] pointer-events-none" />
 
         {/* Hero — light background, headline balanced across both modules */}
         <section className="max-w-5xl mx-auto px-6 sm:px-10 pt-10 sm:pt-16 pb-4 text-center">
@@ -279,6 +288,7 @@ export function LandingContent() {
         <p className="text-[11px] text-gray-400 text-center mt-3">{t(language, 'landing.preview.caption')}</p>
        </Reveal>
       </section>
+        </div>
 
       {/* Problem — plain, relatable pain points, balanced across both modules */}
       <section className="relative bg-gradient-to-b from-gray-50 via-indigo-50/30 to-gray-50 border-y border-gray-100">
