@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import {
-  ArrowRight, LineChart, Sparkles, Globe, Wallet, ShieldCheck,
-  Newspaper, Zap, TrendingDown, CircleDot,
+  ArrowRight, Sparkles, Wallet, TrendingUp, AlertTriangle, CircleDot,
 } from 'lucide-react';
 import { OlahDanaLogo } from '@/components/logos/OlahDanaLogo';
 import { OlahAturMark } from '@/components/logos/OlahAturMark';
@@ -17,8 +16,16 @@ interface IntradayResponse {
   points: { time: number; price: number }[];
   price: number | null;
   changePct: number | null;
-  usdIdrChangePct: number | null;
 }
+
+// Illustrative category split for the OlahAtur mockup panel — a UI preview,
+// not a claim about any real user's data.
+const MOCK_CATEGORIES = [
+  { color: '#1f4690', pct: 34 },
+  { color: '#2e8b8b', pct: 24 },
+  { color: '#e0a83b', pct: 18 },
+  { color: '#d2cabb', pct: 24 },
+];
 
 // Counts up from 0 to the target once real data arrives — the animation
 // itself is decorative, but the number it lands on is always real, fetched
@@ -56,6 +63,17 @@ export function LandingContent() {
 
   const ihsgPrice = useCountUp(intraday?.price ?? null);
   const ihsgChangeUp = (intraday?.changePct ?? 0) >= 0;
+  const conicGradient = (() => {
+    const stops = MOCK_CATEGORIES.reduce<{ text: string[]; acc: number }>(
+      (state, c) => {
+        const from = state.acc;
+        const to = from + c.pct;
+        return { text: [...state.text, `${c.color} ${from}% ${to}%`], acc: to };
+      },
+      { text: [], acc: 0 }
+    ).text;
+    return `conic-gradient(${stops.join(', ')})`;
+  })();
 
   return (
     <div className="min-h-screen bg-white">
@@ -85,69 +103,112 @@ export function LandingContent() {
         </div>
       </header>
 
-      {/* Hero — problem-first headline, real live data as the proof */}
-      <section className="bg-indigo-950 text-white">
-        <div className="max-w-5xl mx-auto px-6 sm:px-10 pt-14 sm:pt-20 pb-8 text-center">
-          <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-indigo-300 mb-4">
-            {t(language, 'landing.hero.badge')}
-          </span>
-          <h1 className="font-geist text-4xl sm:text-6xl font-bold tracking-tight mb-5 max-w-3xl mx-auto leading-[1.05]">
-            {t(language, 'landing.hero.title')}
-          </h1>
-          <p className="text-white/60 text-base sm:text-lg max-w-xl mx-auto mb-9 leading-relaxed">
-            {t(language, 'landing.hero.subtitle')}
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold bg-white text-indigo-950 hover:bg-indigo-50 transition-colors"
-          >
-            {t(language, 'landing.hero.cta')} <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+      {/* Hero — light background, headline balanced across both modules */}
+      <section className="max-w-5xl mx-auto px-6 sm:px-10 pt-10 sm:pt-16 pb-4 text-center">
+        <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-indigo-500 mb-4">
+          {t(language, 'landing.hero.badge')}
+        </span>
+        <h1 className="font-geist text-4xl sm:text-6xl font-bold tracking-tight mb-5 max-w-3xl mx-auto leading-[1.05] text-gray-900">
+          {t(language, 'landing.hero.title')}
+        </h1>
+        <p className="text-gray-500 text-base sm:text-lg max-w-xl mx-auto mb-9 leading-relaxed">
+          {t(language, 'landing.hero.subtitle')}
+        </p>
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+        >
+          {t(language, 'landing.hero.cta')} <ArrowRight className="w-4 h-4" />
+        </Link>
+      </section>
 
-        {/* Live proof block — real IHSG price + intraday chart, fetched
-            from the same public API the dashboard uses. Not a mockup. */}
-        <div className="max-w-5xl mx-auto px-6 sm:px-10 pb-16 sm:pb-24">
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-6 sm:p-8">
-            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-              <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-white/50">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-                </span>
-                {t(language, 'landing.live.badge')}
-              </span>
-              <span className="text-[11px] text-white/30">{t(language, 'landing.live.disclaimer')}</span>
-            </div>
+      {/* Product preview — a real "screenshot-style" image instead of a
+          block of color. OlahSaham's numbers/chart are live and real
+          (same public API the dashboard uses); OlahAtur's category split
+          is an illustrative example of the UI, clearly framed as a preview. */}
+      <section className="max-w-5xl mx-auto px-6 sm:px-10 pb-16 sm:pb-24 pt-6">
+        <div className="rounded-2xl border border-gray-200 shadow-xl shadow-gray-200/50 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-300" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-300" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-300" />
+            <span className="ml-3 text-[11px] text-gray-400 font-mono">olahdana.id</span>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-8 items-center">
-              <div>
-                <div className="text-[11px] text-white/40 uppercase tracking-wide mb-1.5">{t(language, 'landing.live.ihsgLabel')}</div>
-                <div className="flex items-baseline gap-3 flex-wrap">
-                  <span className="text-4xl sm:text-5xl font-bold font-mono tracking-tight">
-                    {intraday?.price != null ? ihsgPrice.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '—'}
-                  </span>
-                  {intraday?.changePct != null && (
-                    <span className={cn('text-sm font-bold px-2.5 py-1 rounded-full', ihsgChangeUp ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300')}>
-                      {ihsgChangeUp ? '+' : ''}{intraday.changePct.toFixed(2)}%
-                    </span>
-                  )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+            {/* OlahAtur panel */}
+            <div className="p-6 sm:p-8">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center p-1.5">
+                  <OlahAturMark className="w-full h-full" />
+                </div>
+                <span className="text-sm font-bold text-gray-900">OlahAtur</span>
+              </div>
+
+              <div className="flex items-center gap-5 mb-5">
+                <div
+                  className="w-20 h-20 rounded-full flex-shrink-0"
+                  style={{ background: conicGradient }}
+                />
+                <div className="flex-1 space-y-1.5">
+                  {MOCK_CATEGORIES.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.color }} />
+                      <div className="h-1.5 rounded-full bg-gray-100 flex-1 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${c.pct}%`, background: c.color }} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="w-full sm:w-52 h-16">
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <span className="text-[11px] text-amber-800 leading-snug">{t(language, 'landing.preview.atur.anomaly')}</span>
+              </div>
+            </div>
+
+            {/* OlahSaham panel — real live data */}
+            <div className="p-6 sm:p-8">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center p-1.5">
+                  <OlahSahamMark className="w-full h-full" />
+                </div>
+                <span className="text-sm font-bold text-gray-900">OlahSaham</span>
+                <span className="inline-flex items-center gap-1 ml-auto text-[9px] font-bold uppercase tracking-wide text-emerald-600">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                  </span>
+                  {t(language, 'landing.live.badge')}
+                </span>
+              </div>
+
+              <div className="mb-1.5 text-[10px] text-gray-400 uppercase tracking-wide">{t(language, 'landing.live.ihsgLabel')}</div>
+              <div className="flex items-baseline gap-2 mb-3">
+                <span className="text-2xl font-bold font-mono text-gray-900 tracking-tight">
+                  {intraday?.price != null ? ihsgPrice.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '—'}
+                </span>
+                {intraday?.changePct != null && (
+                  <span className={cn('text-xs font-bold px-2 py-0.5 rounded-full', ihsgChangeUp ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500')}>
+                    {ihsgChangeUp ? '+' : ''}{intraday.changePct.toFixed(2)}%
+                  </span>
+                )}
+              </div>
+
+              <div className="h-14 mb-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={intraday?.points ?? []}>
                     <defs>
                       <linearGradient id="heroIhsgGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={ihsgChangeUp ? '#34d399' : '#f87171'} stopOpacity={0.35} />
-                        <stop offset="100%" stopColor={ihsgChangeUp ? '#34d399' : '#f87171'} stopOpacity={0} />
+                        <stop offset="0%" stopColor={ihsgChangeUp ? '#10b981' : '#ef4444'} stopOpacity={0.25} />
+                        <stop offset="100%" stopColor={ihsgChangeUp ? '#10b981' : '#ef4444'} stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <Area
                       type="monotone"
                       dataKey="price"
-                      stroke={ihsgChangeUp ? '#34d399' : '#f87171'}
+                      stroke={ihsgChangeUp ? '#10b981' : '#ef4444'}
                       strokeWidth={2}
                       fill="url(#heroIhsgGradient)"
                       dot={false}
@@ -156,137 +217,146 @@ export function LandingContent() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
+
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                <span className="text-[12px] font-bold text-gray-900">AADI</span>
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">{t(language, 'landing.preview.saham.buy')}</span>
+              </div>
             </div>
           </div>
         </div>
+        <p className="text-[11px] text-gray-400 text-center mt-3">{t(language, 'landing.preview.caption')}</p>
       </section>
 
-      {/* Problem — make the pain concrete before pitching the fix */}
-      <section className="max-w-5xl mx-auto px-6 sm:px-10 py-16 sm:py-24">
-        <div className="text-center mb-12">
-          <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-red-500 mb-3">
-            {t(language, 'landing.problem.eyebrow')}
-          </span>
-          <h2 className="font-geist text-2xl sm:text-4xl font-bold text-gray-900 tracking-tight max-w-2xl mx-auto leading-tight">
-            {t(language, 'landing.problem.title')}
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="rounded-2xl border border-gray-200 p-6">
-            <div className="w-10 h-10 rounded-lg bg-red-50 text-red-500 flex items-center justify-center mb-4">
-              <Newspaper className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1.5">{t(language, 'landing.problem.1.title')}</h3>
-            <p className="text-[13px] text-gray-500 leading-relaxed">{t(language, 'landing.problem.1.desc')}</p>
-          </div>
-          <div className="rounded-2xl border border-gray-200 p-6">
-            <div className="w-10 h-10 rounded-lg bg-red-50 text-red-500 flex items-center justify-center mb-4">
-              <Zap className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1.5">{t(language, 'landing.problem.2.title')}</h3>
-            <p className="text-[13px] text-gray-500 leading-relaxed">{t(language, 'landing.problem.2.desc')}</p>
-          </div>
-          <div className="rounded-2xl border border-gray-200 p-6">
-            <div className="w-10 h-10 rounded-lg bg-red-50 text-red-500 flex items-center justify-center mb-4">
-              <TrendingDown className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1.5">{t(language, 'landing.problem.3.title')}</h3>
-            <p className="text-[13px] text-gray-500 leading-relaxed">{t(language, 'landing.problem.3.desc')}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* The fix — modules, reframed against the problems above */}
+      {/* Problem — plain, relatable pain points, balanced across both modules */}
       <section className="bg-gray-50 border-y border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 sm:px-10 py-16 sm:py-24">
+        <div className="max-w-5xl mx-auto px-6 sm:px-10 py-16 sm:py-20">
           <div className="text-center mb-12">
-            <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-emerald-600 mb-3">
-              {t(language, 'landing.modules.eyebrow')}
+            <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-3">
+              {t(language, 'landing.problem.eyebrow')}
             </span>
-            <h2 className="font-geist text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-3">
-              {t(language, 'landing.modules.title')}
+            <h2 className="font-geist text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight max-w-xl mx-auto leading-tight">
+              {t(language, 'landing.problem.title')}
             </h2>
-            <p className="text-gray-500 max-w-lg mx-auto">{t(language, 'landing.modules.subtitle')}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="border-2 border-blue-200 rounded-2xl p-7 bg-white relative">
-              <span className="absolute top-5 right-5 text-[9px] font-bold tracking-widest px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
-                {t(language, 'landing.saham.badge')}
-              </span>
-              <div className="w-12 h-12 rounded-xl bg-blue-500 text-white flex items-center justify-center mb-4 p-2.5">
-                <OlahSahamMark className="w-full h-full" />
+            <div className="rounded-2xl bg-white border border-gray-200 p-6">
+              <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center mb-4">
+                <Wallet className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1.5">OlahSaham</h3>
-              <p className="text-sm text-gray-500 mb-4">{t(language, 'landing.saham.tagline')}</p>
-              <ul className="space-y-2 text-[13px] text-gray-600">
-                <li className="flex items-start gap-2">
-                  <LineChart className="w-3.5 h-3.5 mt-0.5 text-blue-500 flex-shrink-0" />
-                  {t(language, 'landing.saham.feature1')}
-                </li>
-                <li className="flex items-start gap-2">
-                  <Sparkles className="w-3.5 h-3.5 mt-0.5 text-blue-500 flex-shrink-0" />
-                  {t(language, 'landing.saham.feature2')}
-                </li>
-                <li className="flex items-start gap-2">
-                  <Globe className="w-3.5 h-3.5 mt-0.5 text-blue-500 flex-shrink-0" />
-                  {t(language, 'landing.saham.feature3')}
-                </li>
-              </ul>
+              <h3 className="text-base font-bold text-gray-900 mb-1.5">{t(language, 'landing.problem.1.title')}</h3>
+              <p className="text-[13px] text-gray-500 leading-relaxed">{t(language, 'landing.problem.1.desc')}</p>
             </div>
+            <div className="rounded-2xl bg-white border border-gray-200 p-6">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center mb-4">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-bold text-gray-900 mb-1.5">{t(language, 'landing.problem.2.title')}</h3>
+              <p className="text-[13px] text-gray-500 leading-relaxed">{t(language, 'landing.problem.2.desc')}</p>
+            </div>
+            <div className="rounded-2xl bg-white border border-gray-200 p-6">
+              <div className="w-10 h-10 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center mb-4">
+                <CircleDot className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-bold text-gray-900 mb-1.5">{t(language, 'landing.problem.3.title')}</h3>
+              <p className="text-[13px] text-gray-500 leading-relaxed">{t(language, 'landing.problem.3.desc')}</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-            <div className="border-2 border-gray-200 rounded-2xl p-7 bg-white relative">
-              <span className="absolute top-5 right-5 text-[9px] font-bold tracking-widest px-2 py-1 rounded-full bg-amber-100 text-amber-700">
-                {t(language, 'landing.atur.badge')}
-              </span>
-              <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center mb-4 p-2.5">
-                <OlahAturMark className="w-full h-full" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1.5">OlahAtur</h3>
-              <p className="text-sm text-gray-500 mb-4">{t(language, 'landing.atur.tagline')}</p>
-              <ul className="space-y-2 text-[13px] text-gray-600">
-                <li className="flex items-start gap-2">
-                  <Wallet className="w-3.5 h-3.5 mt-0.5 text-indigo-500 flex-shrink-0" />
-                  {t(language, 'landing.atur.feature1')}
-                </li>
-                <li className="flex items-start gap-2">
-                  <ShieldCheck className="w-3.5 h-3.5 mt-0.5 text-indigo-500 flex-shrink-0" />
-                  {t(language, 'landing.atur.feature2')}
-                </li>
-              </ul>
-              <p className="text-[11px] text-gray-400 mt-4 pt-4 border-t border-gray-200">
-                {t(language, 'landing.atur.note')}
-              </p>
-            </div>
+      {/* Modules — equal weight: 3 feature bullets each */}
+      <section className="max-w-6xl mx-auto px-6 sm:px-10 py-16 sm:py-20">
+        <div className="text-center mb-12">
+          <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-3">
+            {t(language, 'landing.modules.eyebrow')}
+          </span>
+          <h2 className="font-geist text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-3">
+            {t(language, 'landing.modules.title')}
+          </h2>
+          <p className="text-gray-500 max-w-lg mx-auto">{t(language, 'landing.modules.subtitle')}</p>
+        </div>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-2xl p-7 flex flex-col items-center justify-center text-center">
-              <div className="w-12 h-12 rounded-xl bg-gray-200 text-gray-400 flex items-center justify-center mb-4">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-gray-500 mb-1.5">{t(language, 'landing.more.title')}</h3>
-              <p className="text-[13px] text-gray-400">{t(language, 'landing.more.desc')}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="border-2 border-indigo-200 rounded-2xl p-7 bg-white relative">
+            <span className="absolute top-5 right-5 text-[9px] font-bold tracking-widest px-2 py-1 rounded-full bg-amber-100 text-amber-700">
+              {t(language, 'landing.atur.badge')}
+            </span>
+            <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center mb-4 p-2.5">
+              <OlahAturMark className="w-full h-full" />
             </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1.5">OlahAtur</h3>
+            <p className="text-sm text-gray-500 mb-4">{t(language, 'landing.atur.tagline')}</p>
+            <ul className="space-y-2 text-[13px] text-gray-600">
+              <li className="flex items-start gap-2">
+                <Wallet className="w-3.5 h-3.5 mt-0.5 text-indigo-500 flex-shrink-0" />
+                {t(language, 'landing.atur.feature1')}
+              </li>
+              <li className="flex items-start gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 text-indigo-500 flex-shrink-0" />
+                {t(language, 'landing.atur.feature2')}
+              </li>
+              <li className="flex items-start gap-2">
+                <Sparkles className="w-3.5 h-3.5 mt-0.5 text-indigo-500 flex-shrink-0" />
+                {t(language, 'landing.atur.feature3')}
+              </li>
+            </ul>
+            <p className="text-[11px] text-gray-400 mt-4 pt-4 border-t border-gray-100">
+              {t(language, 'landing.atur.note')}
+            </p>
+          </div>
+
+          <div className="border-2 border-blue-200 rounded-2xl p-7 bg-white relative">
+            <span className="absolute top-5 right-5 text-[9px] font-bold tracking-widest px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+              {t(language, 'landing.saham.badge')}
+            </span>
+            <div className="w-12 h-12 rounded-xl bg-blue-500 text-white flex items-center justify-center mb-4 p-2.5">
+              <OlahSahamMark className="w-full h-full" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1.5">OlahSaham</h3>
+            <p className="text-sm text-gray-500 mb-4">{t(language, 'landing.saham.tagline')}</p>
+            <ul className="space-y-2 text-[13px] text-gray-600">
+              <li className="flex items-start gap-2">
+                <TrendingUp className="w-3.5 h-3.5 mt-0.5 text-blue-500 flex-shrink-0" />
+                {t(language, 'landing.saham.feature1')}
+              </li>
+              <li className="flex items-start gap-2">
+                <Sparkles className="w-3.5 h-3.5 mt-0.5 text-blue-500 flex-shrink-0" />
+                {t(language, 'landing.saham.feature2')}
+              </li>
+              <li className="flex items-start gap-2">
+                <CircleDot className="w-3.5 h-3.5 mt-0.5 text-blue-500 flex-shrink-0" />
+                {t(language, 'landing.saham.feature3')}
+              </li>
+            </ul>
+          </div>
+
+          <div className="border-2 border-dashed border-gray-300 rounded-2xl p-7 flex flex-col items-center justify-center text-center">
+            <div className="w-12 h-12 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center mb-4">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-500 mb-1.5">{t(language, 'landing.more.title')}</h3>
+            <p className="text-[13px] text-gray-400">{t(language, 'landing.more.desc')}</p>
           </div>
         </div>
       </section>
 
       {/* Trust strip — real sources as a differentiator, not decoration */}
-      <section className="max-w-5xl mx-auto px-6 sm:px-10 py-14 text-center">
-        <CircleDot className="w-5 h-5 text-indigo-600 mx-auto mb-3" />
+      <section className="max-w-5xl mx-auto px-6 sm:px-10 pb-14 text-center">
         <h3 className="text-base font-bold text-gray-900 mb-1.5">{t(language, 'landing.trust.title')}</h3>
         <p className="text-[13px] text-gray-500 max-w-md mx-auto">{t(language, 'landing.trust.desc')}</p>
       </section>
 
-      <section className="bg-indigo-950">
+      <section className="bg-gray-50 border-t border-gray-100">
         <div className="max-w-5xl mx-auto px-6 sm:px-10 py-16 text-center">
-          <h2 className="font-geist text-2xl sm:text-4xl font-bold text-white tracking-tight mb-3">
+          <h2 className="font-geist text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-3">
             {t(language, 'landing.cta.title')}
           </h2>
-          <p className="text-white/50 mb-8 max-w-md mx-auto">{t(language, 'landing.cta.subtitle')}</p>
+          <p className="text-gray-500 mb-8 max-w-md mx-auto">{t(language, 'landing.cta.subtitle')}</p>
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold bg-white text-indigo-950 hover:bg-indigo-50 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
           >
             {t(language, 'landing.cta.button')} <ArrowRight className="w-4 h-4" />
           </Link>
