@@ -114,7 +114,7 @@ export function LandingContent() {
           thing to "movement" a static marketing page can honestly show. */}
       <div className="absolute -top-32 -left-32 w-[480px] h-[480px] bg-indigo-300/30 rounded-full blur-[110px] animate-blob-drift pointer-events-none" />
       <div className="absolute -top-16 -right-24 w-[520px] h-[520px] bg-blue-300/25 rounded-full blur-[120px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-5s' }} />
-      <div className="absolute top-[28%] left-[15%] w-[380px] h-[380px] bg-emerald-200/25 rounded-full blur-[100px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-10s' }} />
+      <div className="absolute top-[28%] left-[15%] w-[380px] h-[380px] bg-[#2e8b8b]/20 rounded-full blur-[100px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-10s' }} />
       <div className="absolute top-0 left-0 right-0 h-[560px] bg-dot-grid [mask-image:radial-gradient(ellipse_60%_60%_at_50%_20%,black,transparent)] pointer-events-none" />
 
       <div className="relative z-10">
@@ -150,7 +150,7 @@ export function LandingContent() {
             <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-indigo-500 mb-4">
               {t(language, 'landing.hero.badge')}
             </span>
-            <h1 className="font-geist text-4xl sm:text-6xl font-bold tracking-tight mb-5 max-w-3xl mx-auto leading-[1.05] bg-gradient-to-r from-indigo-700 via-blue-600 to-emerald-500 bg-clip-text text-transparent">
+            <h1 className="font-geist text-4xl sm:text-6xl font-bold tracking-tight mb-5 max-w-3xl mx-auto leading-[1.05] bg-gradient-to-r from-indigo-700 via-blue-600 to-[#2e8b8b] bg-clip-text text-transparent">
               {t(language, 'landing.hero.title')}
             </h1>
             <p className="text-gray-500 text-base sm:text-lg max-w-xl mx-auto mb-9 leading-relaxed">
@@ -405,7 +405,7 @@ export function LandingContent() {
         <p className="text-[13px] text-gray-500 max-w-md mx-auto">{t(language, 'landing.trust.desc')}</p>
       </Reveal>
 
-      <section className="relative bg-gradient-to-br from-indigo-50 via-blue-50 to-emerald-50/60 border-t border-gray-100 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-indigo-50 via-blue-50 to-[#2e8b8b]/10 border-t border-gray-100 overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-200/30 rounded-full blur-[100px] animate-blob-drift pointer-events-none" />
         <div className="relative max-w-5xl mx-auto px-6 sm:px-10 py-16 text-center">
           <Reveal>
