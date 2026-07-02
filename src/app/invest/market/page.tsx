@@ -7,7 +7,7 @@ import { Topbar } from '@/components/Topbar';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import type { NewsItem, NewsCategory } from '@/lib/marketNews';
+import { NEWS_CATEGORY_ORDER, NEWS_CATEGORY_BADGE, type NewsItem, type NewsCategory } from '@/lib/marketNews';
 
 interface CommentaryResponse {
   commentary: string | null;
@@ -43,15 +43,6 @@ function trendText(pct: number | null) {
   return `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% YTD`;
 }
 
-const CATEGORY_ORDER: NewsCategory[] = ['monetary', 'fiscal', 'geopolitics', 'politics', 'markets'];
-const CATEGORY_BADGE: Record<NewsCategory, 'success' | 'warning' | 'danger' | 'info' | 'neutral'> = {
-  monetary: 'info',
-  fiscal: 'warning',
-  geopolitics: 'danger',
-  politics: 'neutral',
-  markets: 'success',
-};
-
 export default function MarketPage() {
   const { t, language } = useFinance();
   const [data, setData] = useState<MarketResponse | null>(null);
@@ -83,12 +74,12 @@ export default function MarketPage() {
   ];
 
   const news = newsData?.news ?? [];
-  const grouped = CATEGORY_ORDER.map((cat) => ({
+  const grouped = NEWS_CATEGORY_ORDER.map((cat) => ({
     category: cat,
     items: news.filter((n) => n.category === cat).slice(0, 6),
   })).filter((g) => g.items.length > 0);
 
-  const counts = CATEGORY_ORDER.reduce((acc, cat) => {
+  const counts = NEWS_CATEGORY_ORDER.reduce((acc, cat) => {
     acc[cat] = news.filter((n) => n.category === cat).length;
     return acc;
   }, {} as Record<NewsCategory, number>);
@@ -144,7 +135,7 @@ export default function MarketPage() {
             <p className="text-[13px] text-gray-600 leading-relaxed">
               IHSG {data?.ihsg.ytdPct != null ? `${data.ihsg.ytdPct >= 0 ? '+' : ''}${data.ihsg.ytdPct.toFixed(2)}% YTD` : '—'}, USD/IDR {data?.usdidr.ytdPct != null ? `${data.usdidr.ytdPct >= 0 ? '+' : ''}${data.usdidr.ytdPct.toFixed(2)}% YTD` : '—'}.{' '}
               {news.length} {isId ? 'berita terpantau hari ini' : 'headlines tracked today'}:{' '}
-              {CATEGORY_ORDER.map((cat, i) => (
+              {NEWS_CATEGORY_ORDER.map((cat, i) => (
                 <span key={cat}>
                   {i > 0 && ', '}
                   <strong className="text-gray-900">{counts[cat]}</strong> {t(`invest.news.category.${cat}`).toLowerCase()}
@@ -164,7 +155,7 @@ export default function MarketPage() {
 
         {grouped.map((group) => (
           <Card key={group.category} className="mb-6">
-            <CardHeader action={<Badge variant={CATEGORY_BADGE[group.category]}>{group.items.length}</Badge>}>
+            <CardHeader action={<Badge variant={NEWS_CATEGORY_BADGE[group.category]}>{group.items.length}</Badge>}>
               {t(`invest.news.category.${group.category}`)}
             </CardHeader>
             <CardBody compact>

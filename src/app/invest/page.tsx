@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import { computeMarketMood, type MarketMood } from '@/lib/marketMood';
 import { evaluateSignal, type SignalBatch, type StockSignal } from '@/lib/stockSignals';
-import type { NewsItem } from '@/lib/marketNews';
+import { NEWS_CATEGORY_ORDER, NEWS_CATEGORY_BADGE, type NewsItem } from '@/lib/marketNews';
 
 interface IntradayResponse {
   points: { time: number; price: number }[];
@@ -158,6 +158,13 @@ export default function InvestDashboardPage() {
     ? ((intraday.price - previousVisit.ihsgPrice) / previousVisit.ihsgPrice) * 100
     : null;
   const hasVisitChanges = newBuyTickers.length > 0 || newHeadlinesCount > 0 || (ihsgDeltaPct != null && Math.abs(ihsgDeltaPct) >= 0.05);
+
+  // One headline per category instead of a generic reverse-chron feed — news
+  // is already sorted newest-first by the API, so the first match per
+  // category is the most current thing happening in that area.
+  const briefingItems = NEWS_CATEGORY_ORDER
+    .map((cat) => news.find((n) => n.category === cat))
+    .filter((n): n is NewsItem => Boolean(n));
 
   function formatChartTime(ms: number) {
     return new Date(ms).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' });
@@ -315,19 +322,20 @@ export default function InvestDashboardPage() {
           <Card>
             <CardHeader>{t('invest.dashboard.todaysBriefing')}</CardHeader>
             <CardBody compact>
-              {news.slice(0, 5).map((n, idx) => (
+              {briefingItems.map((n, idx) => (
                 <a
                   key={idx}
                   href={n.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={cn('flex flex-col gap-0.5 px-5 py-2.5 hover:bg-gray-50/50 transition-colors', idx !== 0 && 'border-t border-gray-100')}
+                  className={cn('flex flex-col gap-1 px-5 py-2.5 hover:bg-gray-50/50 transition-colors', idx !== 0 && 'border-t border-gray-100')}
                 >
+                  <Badge variant={NEWS_CATEGORY_BADGE[n.category]}>{t(`invest.news.category.${n.category}`)}</Badge>
                   <span className="text-[13px] font-medium text-gray-900 leading-snug">{n.title}</span>
                   <span className="text-[10px] text-gray-400">{n.source}</span>
                 </a>
               ))}
-              {news.length === 0 && <div className="px-5 py-8 text-center text-gray-400 text-sm">{t('invest.dashboard.noNews')}</div>}
+              {briefingItems.length === 0 && <div className="px-5 py-8 text-center text-gray-400 text-sm">{t('invest.dashboard.noNews')}</div>}
               <div className="px-5 py-3 border-t border-gray-100">
                 <Link href="/invest/market" className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700">
                   {t('invest.dashboard.viewFullOutlook')} <ArrowRight className="w-3.5 h-3.5" />

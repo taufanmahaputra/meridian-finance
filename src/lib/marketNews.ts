@@ -2,6 +2,17 @@ import { XMLParser } from 'fast-xml-parser';
 
 export type NewsCategory = 'fiscal' | 'monetary' | 'geopolitics' | 'politics' | 'markets';
 
+// Shared ordering + badge color so every page that groups news by category
+// (dashboard briefing, full market page) stays visually consistent.
+export const NEWS_CATEGORY_ORDER: NewsCategory[] = ['monetary', 'fiscal', 'geopolitics', 'politics', 'markets'];
+export const NEWS_CATEGORY_BADGE: Record<NewsCategory, 'success' | 'warning' | 'danger' | 'info' | 'neutral'> = {
+  monetary: 'info',
+  fiscal: 'warning',
+  geopolitics: 'danger',
+  politics: 'neutral',
+  markets: 'success',
+};
+
 export interface NewsItem {
   title: string;
   link: string;
