@@ -1,13 +1,32 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ExternalLink, Sparkles } from 'lucide-react';
+import { ExternalLink, Sparkles, Percent, Landmark, Globe2, Building2, TrendingUp, ChevronDown } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { cn } from '@/lib/utils';
 import { NEWS_CATEGORY_ORDER, NEWS_CATEGORY_BADGE, type NewsItem, type NewsCategory } from '@/lib/marketNews';
+
+// Same icon per category everywhere a category shows up, so the eye learns
+// the mapping once (shape+color) instead of re-reading labels every time.
+const CATEGORY_ICON: Record<NewsCategory, typeof Percent> = {
+  monetary: Percent,
+  fiscal: Landmark,
+  geopolitics: Globe2,
+  politics: Building2,
+  markets: TrendingUp,
+};
+const CATEGORY_ICON_COLOR: Record<NewsCategory, string> = {
+  monetary: 'text-blue-500',
+  fiscal: 'text-amber-500',
+  geopolitics: 'text-red-500',
+  politics: 'text-gray-500',
+  markets: 'text-emerald-500',
+};
+const COLLAPSED_COUNT = 3;
 
 interface CommentaryResponse {
   commentary: string | null;
@@ -49,7 +68,12 @@ export default function MarketPage() {
   const [newsData, setNewsData] = useState<NewsResponse | null>(null);
   const [commentary, setCommentary] = useState<CommentaryResponse | null>(null);
   const [error, setError] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const isId = language === 'id';
+
+  function toggleExpand(category: string) {
+    setExpanded((prev) => ({ ...prev, [category]: !prev[category] }));
+  }
 
   useEffect(() => {
     fetch('/api/market')
@@ -129,21 +153,33 @@ export default function MarketPage() {
           </CardBody>
         </Card>
 
-        <Card className="mb-6">
-          <CardHeader>{t('invest.news.bottomLine')}</CardHeader>
-          <CardBody>
-            <p className="text-[13px] text-gray-600 leading-relaxed">
-              IHSG {data?.ihsg.ytdPct != null ? `${data.ihsg.ytdPct >= 0 ? '+' : ''}${data.ihsg.ytdPct.toFixed(2)}% YTD` : '—'}, USD/IDR {data?.usdidr.ytdPct != null ? `${data.usdidr.ytdPct >= 0 ? '+' : ''}${data.usdidr.ytdPct.toFixed(2)}% YTD` : '—'}.{' '}
-              {news.length} {isId ? 'berita terpantau hari ini' : 'headlines tracked today'}:{' '}
-              {NEWS_CATEGORY_ORDER.map((cat, i) => (
-                <span key={cat}>
-                  {i > 0 && ', '}
-                  <strong className="text-gray-900">{counts[cat]}</strong> {t(`invest.news.category.${cat}`).toLowerCase()}
-                </span>
-              ))}.
-            </p>
-          </CardBody>
-        </Card>
+        <div className="mb-6">
+          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">{t('market.atAGlance')}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className={cn('px-3 py-2 rounded-lg flex items-center gap-1.5', trendClass(data?.ihsg.ytdPct ?? null))}>
+              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">IHSG</span>
+              <span className="text-xs font-bold">{trendText(data?.ihsg.ytdPct ?? null)}</span>
+            </div>
+            <div className={cn('px-3 py-2 rounded-lg flex items-center gap-1.5', trendClass(data?.usdidr.ytdPct ?? null))}>
+              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">USD/IDR</span>
+              <span className="text-xs font-bold">{trendText(data?.usdidr.ytdPct ?? null)}</span>
+            </div>
+            <div className="px-3 py-2 rounded-lg bg-gray-100 flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t('invest.news.totalHeadlines')}</span>
+              <span className="text-xs font-bold text-gray-900">{news.length}</span>
+            </div>
+            {NEWS_CATEGORY_ORDER.map((cat) => {
+              const Icon = CATEGORY_ICON[cat];
+              return (
+                <div key={cat} className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 flex items-center gap-1.5">
+                  <Icon className={cn('w-3.5 h-3.5', CATEGORY_ICON_COLOR[cat])} />
+                  <span className="text-xs font-bold text-gray-900">{counts[cat]}</span>
+                  <span className="text-[10px] text-gray-400">{t(`invest.news.category.${cat}`)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {grouped.length === 0 && (
           <Card className="mb-6">
@@ -153,30 +189,64 @@ export default function MarketPage() {
           </Card>
         )}
 
-        {grouped.map((group) => (
-          <Card key={group.category} className="mb-6">
-            <CardHeader action={<Badge variant={NEWS_CATEGORY_BADGE[group.category]}>{group.items.length}</Badge>}>
-              {t(`invest.news.category.${group.category}`)}
-            </CardHeader>
-            <CardBody compact>
-              {group.items.map((item, idx) => (
-                <a
-                  key={idx}
-                  href={item.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex items-start justify-between gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors ${idx !== 0 ? 'border-t border-gray-100' : ''}`}
-                >
-                  <div className="min-w-0">
-                    <div className="text-[13px] font-medium text-gray-900 leading-snug">{item.title}</div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">{item.source} · {formatTime(item.publishedAt)}</div>
-                  </div>
-                  <ExternalLink className="w-3.5 h-3.5 text-gray-300 flex-shrink-0 mt-0.5" />
-                </a>
-              ))}
-            </CardBody>
-          </Card>
-        ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-start">
+          {grouped.map((group) => {
+            const Icon = CATEGORY_ICON[group.category];
+            const isExpanded = expanded[group.category];
+            const visibleItems = isExpanded ? group.items : group.items.slice(0, COLLAPSED_COUNT);
+            const hiddenCount = group.items.length - COLLAPSED_COUNT;
+
+            return (
+              <Card key={group.category}>
+                <CardHeader action={<Badge variant={NEWS_CATEGORY_BADGE[group.category]}>{group.items.length}</Badge>}>
+                  <span className="inline-flex items-center gap-2">
+                    <Icon className={cn('w-4 h-4', CATEGORY_ICON_COLOR[group.category])} />
+                    {t(`invest.news.category.${group.category}`)}
+                  </span>
+                </CardHeader>
+                <CardBody compact>
+                  {visibleItems.map((item, idx) =>
+                    idx === 0 ? (
+                      <a
+                        key={idx}
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block px-5 py-4 bg-gray-50/60 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="text-[14px] font-semibold text-gray-900 leading-snug mb-1.5">{item.title}</div>
+                        <div className="text-[11px] text-gray-400">{item.source} · {formatTime(item.publishedAt)}</div>
+                      </a>
+                    ) : (
+                      <a
+                        key={idx}
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start justify-between gap-3 px-5 py-2.5 border-t border-gray-100 hover:bg-gray-50/50 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-[12.5px] text-gray-700 leading-snug truncate">{item.title}</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{item.source} · {formatTime(item.publishedAt)}</div>
+                        </div>
+                        <ExternalLink className="w-3 h-3 text-gray-300 flex-shrink-0 mt-1" />
+                      </a>
+                    )
+                  )}
+                  {hiddenCount > 0 && (
+                    <button
+                      onClick={() => toggleExpand(group.category)}
+                      className="w-full flex items-center justify-center gap-1 px-5 py-2.5 border-t border-gray-100 text-[11px] font-semibold text-indigo-600 hover:bg-gray-50 transition-colors"
+                    >
+                      {isExpanded ? t('common.showLess') : `${t('common.showMore')} (${hiddenCount})`}
+                      <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', isExpanded && 'rotate-180')} />
+                    </button>
+                  )}
+                </CardBody>
+              </Card>
+            );
+          })}
+        </div>
 
         <p className="text-[11px] text-gray-400 text-center">{t('invest.news.sources')}</p>
       </div>
