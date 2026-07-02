@@ -49,3 +49,27 @@ body {
 .brand-mark {
   background: linear-gradient(135deg, #1f4690 0%, #2e8b8b 100%);
 }
+
+/* Landing page ambience — slow-drifting gradient blobs and a gentle
+   float on the product preview card, used nowhere else in the app. */
+@keyframes blob-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -24px) scale(1.06); }
+  66% { transform: translate(-24px, 20px) scale(0.96); }
+}
+.animate-blob-drift {
+  animation: blob-drift 16s ease-in-out infinite;
+}
+
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-gentle-float {
+  animation: gentle-float 6s ease-in-out infinite;
+}
+
+.bg-dot-grid {
+  background-image: radial-gradient(circle, rgba(31, 70, 144, 0.12) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
