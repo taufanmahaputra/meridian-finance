@@ -7,7 +7,7 @@ import {
   LayoutGrid, DollarSign, CheckCircle, Activity,
   Lightbulb, TrendingUp, Upload, X, CalendarDays, Settings,
   Signal, Compass, ChevronDown, Check, ListChecks, ChevronLeft, ChevronRight,
-  Languages, HelpCircle, LogOut,
+  Languages, HelpCircle, LogOut, PieChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
@@ -25,6 +25,7 @@ const olahAturSections = [
       { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutGrid },
       { href: '/monthly', labelKey: 'nav.monthly', icon: CalendarDays },
       { href: '/transactions', labelKey: 'nav.transactions', icon: DollarSign },
+      { href: '/spending', labelKey: 'nav.spending', icon: PieChart },
       { href: '/budget', labelKey: 'nav.budget', icon: CheckCircle },
     ],
   },

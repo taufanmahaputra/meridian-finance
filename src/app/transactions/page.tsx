@@ -3,32 +3,22 @@
 import { useState, useMemo } from 'react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
-import { Card, CardBody } from '@/components/ui/Card';
+import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { fmt } from '@/lib/calculations';
-import type { Transaction } from '@/types/finance';
+import { KpiCard } from '@/components/ui/KpiCard';
+import { TopCategoriesBar } from '@/components/charts/TopCategoriesBar';
+import { fmt, buildTransactionLedger } from '@/lib/calculations';
 
 const PER_PAGE = 25;
 
 export default function TransactionsPage() {
-  const { months, transactions, currency, t } = useFinance();
+  const { months, transactions, catColors, currency, t } = useFinance();
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
   const [page, setPage] = useState(0);
 
-  const allTx = useMemo(() => {
-    const monthsWithItemized = new Set(transactions.map((t) => t.month).filter(Boolean));
-    const fromMonths: Transaction[] = [];
-    months.forEach((m) => {
-      if (monthsWithItemized.has(m.label)) return;
-      Object.entries(m.cats).forEach(([cat, total]) => {
-        if (total > 0) fromMonths.push({ date: m.label, description: `${cat} — ${m.label} total`, amount: total, category: cat, type: 'Expense' });
-      });
-      fromMonths.push({ date: m.label, description: `Salary — ${m.label}`, amount: m.income, category: 'Income', type: 'Income' });
-    });
-    return [...fromMonths, ...transactions];
-  }, [months, transactions]);
+  const allTx = useMemo(() => buildTransactionLedger(months, transactions), [months, transactions]);
 
   const categories = useMemo(() => [...new Set(allTx.map((t) => t.category))].sort(), [allTx]);
   const monthLabels = useMemo(() => [...new Set(allTx.map((t) => t.date))], [allTx]);
@@ -45,10 +35,33 @@ export default function TransactionsPage() {
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const slice = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
 
+  const totalIn = filtered.filter((tx) => tx.type === 'Income').reduce((s, tx) => s + tx.amount, 0);
+  const totalOut = filtered.filter((tx) => tx.type === 'Expense').reduce((s, tx) => s + tx.amount, 0);
+  const filteredCats = useMemo(() => {
+    const cats: Record<string, number> = {};
+    filtered.forEach((tx) => {
+      if (tx.type === 'Expense') cats[tx.category] = (cats[tx.category] || 0) + tx.amount;
+    });
+    return cats;
+  }, [filtered]);
+
+  const kpis = [
+    { icon: <span>📥</span>, iconBg: 'bg-emerald-50', label: t('transactions.kpi.totalIn'), value: fmt(totalIn, currency) },
+    { icon: <span>📤</span>, iconBg: 'bg-red-50', label: t('transactions.kpi.totalOut'), value: fmt(totalOut, currency) },
+    { icon: <span>⚖️</span>, iconBg: totalIn - totalOut >= 0 ? 'bg-emerald-50' : 'bg-red-50', label: t('transactions.kpi.net'), value: fmt(totalIn - totalOut, currency) },
+    { icon: <span>🧾</span>, iconBg: 'bg-indigo-50', label: t('transactions.kpi.count'), value: String(filtered.length) },
+  ];
+
   return (
     <>
       <Topbar title={t('transactions.title')} />
       <div className="p-4 sm:p-7 max-w-[1440px]">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {kpis.map((k) => (
+            <KpiCard key={k.label} icon={k.icon} iconBg={k.iconBg} label={k.label} value={k.value} />
+          ))}
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="text-sm font-semibold">{t('transactions.ledger')}</h3>
@@ -66,6 +79,13 @@ export default function TransactionsPage() {
             </select>
           </div>
         </div>
+
+        {Object.keys(filteredCats).length > 0 && (
+          <Card className="mb-4">
+            <CardHeader>{t('transactions.breakdown')}</CardHeader>
+            <CardBody><TopCategoriesBar cats={filteredCats} catColors={catColors} currency={currency} /></CardBody>
+          </Card>
+        )}
 
         <Card>
           <CardBody compact>

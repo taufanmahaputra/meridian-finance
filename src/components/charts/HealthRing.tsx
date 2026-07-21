@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { STATUS_COLORS, CHART_GRID_COLOR } from '@/lib/constants';
 
 export function HealthRing({ score }: { score: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -16,12 +17,12 @@ export function HealthRing({ score }: { score: number }) {
     canvas.height = 140 * dpr;
     ctx.scale(dpr, dpr);
 
-    const color = score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+    const color = score >= 75 ? STATUS_COLORS.good : score >= 50 ? STATUS_COLORS.warning : STATUS_COLORS.danger;
 
     ctx.clearRect(0, 0, 140, 140);
     ctx.beginPath();
     ctx.arc(70, 70, 56, 0, 2 * Math.PI);
-    ctx.strokeStyle = '#f1f5f9';
+    ctx.strokeStyle = CHART_GRID_COLOR;
     ctx.lineWidth = 10;
     ctx.stroke();
 
