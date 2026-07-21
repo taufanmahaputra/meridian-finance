@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { OlahDanaMark } from '@/components/logos/OlahDanaMark';
 
@@ -16,15 +18,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 relative">
+      <Link
+        href="/"
+        className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-gray-700 transition-colors"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        Back to home
+      </Link>
+
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="brand-mark w-12 h-12 rounded-xl flex items-center justify-center text-white p-2.5 mx-auto mb-3">
+        <Link href="/" className="block text-center mb-8 group">
+          <div className="brand-mark w-12 h-12 rounded-xl flex items-center justify-center text-white p-2.5 mx-auto mb-3 transition-transform duration-300 group-hover:scale-105">
             <OlahDanaMark className="w-full h-full" />
           </div>
           <h1 className="font-geist text-2xl font-semibold text-gray-900 tracking-tight">OlahDana</h1>
           <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[.2em] mt-1">All-In-One Financial Platform</p>
-        </div>
+        </Link>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <h2 className="text-lg font-semibold text-center mb-2">Welcome back</h2>
@@ -32,7 +42,7 @@ export default function LoginPage() {
 
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 shadow-sm hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm transition-all duration-200"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />

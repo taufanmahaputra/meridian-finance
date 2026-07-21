@@ -246,7 +246,9 @@ export function LandingContent() {
     <div className="min-h-screen bg-white">
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="px-6 sm:px-10 py-4 flex items-center justify-between max-w-6xl mx-auto">
-          <OlahDanaLogo iconClassName="w-9 h-9" textClassName="text-xl" />
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <OlahDanaLogo iconClassName="w-9 h-9" textClassName="text-xl" />
+          </Link>
           <div className="flex items-center gap-3">
             <div className="flex rounded-lg border border-gray-200 overflow-hidden text-[11px] font-semibold">
               <button
@@ -264,7 +266,7 @@ export function LandingContent() {
             </div>
             <Link
               href="/login"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-b from-indigo-500 to-indigo-600 shadow-sm shadow-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm transition-all duration-200"
             >
               {t(language, 'landing.nav.signIn')}
             </Link>
@@ -291,9 +293,10 @@ export function LandingContent() {
             <div className="flex items-center gap-5 flex-wrap">
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 transition-all"
+                className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold text-white bg-gradient-to-b from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/45 hover:-translate-y-0.5 active:translate-y-0 active:shadow-md transition-all duration-200"
               >
-                {t(language, 'landing.hero.cta')} <ArrowRight className="w-4 h-4" />
+                {t(language, 'landing.hero.cta')}
+                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
               </Link>
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <span className="relative flex h-2 w-2">
@@ -502,9 +505,10 @@ export function LandingContent() {
             </div>
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 transition-all flex-shrink-0"
+              className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold text-white bg-gradient-to-b from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/45 hover:-translate-y-0.5 active:translate-y-0 active:shadow-md transition-all duration-200 flex-shrink-0"
             >
-              {t(language, 'landing.cta.button')} <ArrowRight className="w-4 h-4" />
+              {t(language, 'landing.cta.button')}
+              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
           </div>
         </Reveal>
