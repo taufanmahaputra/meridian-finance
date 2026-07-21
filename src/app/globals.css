@@ -73,3 +73,23 @@ body {
   background-image: radial-gradient(circle, rgba(31, 70, 144, 0.12) 1px, transparent 1px);
   background-size: 22px 22px;
 }
+
+/* Infinite horizontal scroll for the data-source strip — track content is
+   duplicated in markup so translateX(-50%) loops seamlessly. */
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee-scroll 22s linear infinite;
+}
+
+/* Story-style fill bar for the auto-cycling product demo panel — restarts
+   whenever the parent's `key` changes (i.e. each time the demo view flips). */
+@keyframes progress-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.animate-progress-fill {
+  animation: progress-fill 4.5s linear;
+}
