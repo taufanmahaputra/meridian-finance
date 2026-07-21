@@ -155,18 +155,19 @@ export function LandingContent() {
           {/* Ambient gradient blobs — drift slowly behind the hero, the
               closest thing to "movement" a static marketing page can
               honestly show. */}
-          <div className="absolute -top-32 -left-32 w-[480px] h-[480px] bg-indigo-300/30 rounded-full blur-[110px] animate-blob-drift pointer-events-none" />
-          <div className="absolute -top-16 -right-24 w-[520px] h-[520px] bg-blue-300/25 rounded-full blur-[120px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-5s' }} />
-          <div className="absolute top-[28%] left-[15%] w-[380px] h-[380px] bg-[#2e8b8b]/20 rounded-full blur-[100px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-10s' }} />
+          <div className="absolute -top-32 -left-32 w-[480px] h-[480px] bg-indigo-300/35 rounded-full blur-[110px] animate-blob-drift pointer-events-none" />
+          <div className="absolute -top-16 -right-24 w-[520px] h-[520px] bg-blue-300/30 rounded-full blur-[120px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-5s' }} />
+          <div className="absolute top-[28%] left-[15%] w-[380px] h-[380px] bg-[#2e8b8b]/25 rounded-full blur-[100px] animate-blob-drift pointer-events-none" style={{ animationDelay: '-10s' }} />
           <div className="absolute top-0 left-0 right-0 h-[560px] bg-dot-grid [mask-image:radial-gradient(ellipse_60%_60%_at_50%_20%,black,transparent)] pointer-events-none" />
 
         {/* Hero — light background, headline balanced across both modules */}
         <section className="max-w-5xl mx-auto px-6 sm:px-10 pt-10 sm:pt-16 pb-4 text-center">
           <Reveal>
-            <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-indigo-500 mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-[11px] font-semibold uppercase tracking-widest text-indigo-600 mb-5">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
               {t(language, 'landing.hero.badge')}
             </span>
-            <h1 className="font-geist text-4xl sm:text-6xl font-bold tracking-tight mb-5 max-w-3xl mx-auto leading-[1.05] bg-gradient-to-r from-indigo-700 via-blue-600 to-[#2e8b8b] bg-clip-text text-transparent">
+            <h1 className="font-geist text-4xl sm:text-7xl font-bold tracking-tight mb-5 max-w-3xl mx-auto leading-[1.05] bg-gradient-to-r from-indigo-700 via-blue-600 to-[#2e8b8b] bg-clip-text text-transparent">
               {t(language, 'landing.hero.title')}
             </h1>
             <p className="text-gray-500 text-base sm:text-lg max-w-xl mx-auto mb-9 leading-relaxed">
@@ -304,8 +305,8 @@ export function LandingContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <Reveal delay={0}>
-              <div className="rounded-2xl bg-white border border-gray-200 p-6 h-full hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-100 hover:border-indigo-200 transition-all duration-300">
-                <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center mb-4">
+              <div className="group rounded-2xl bg-white border border-gray-200 p-6 h-full hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-100 hover:border-indigo-200 transition-all duration-300">
+                <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                   <Wallet className="w-5 h-5" />
                 </div>
                 <h3 className="text-base font-bold text-gray-900 mb-1.5">{t(language, 'landing.problem.1.title')}</h3>
@@ -313,8 +314,8 @@ export function LandingContent() {
               </div>
             </Reveal>
             <Reveal delay={120}>
-              <div className="rounded-2xl bg-white border border-gray-200 p-6 h-full hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-100 hover:border-blue-200 transition-all duration-300">
-                <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center mb-4">
+              <div className="group rounded-2xl bg-white border border-gray-200 p-6 h-full hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-100 hover:border-blue-200 transition-all duration-300">
+                <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <h3 className="text-base font-bold text-gray-900 mb-1.5">{t(language, 'landing.problem.2.title')}</h3>
@@ -322,8 +323,8 @@ export function LandingContent() {
               </div>
             </Reveal>
             <Reveal delay={240}>
-              <div className="rounded-2xl bg-white border border-gray-200 p-6 h-full hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-200 transition-all duration-300">
-                <div className="w-10 h-10 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center mb-4">
+              <div className="group rounded-2xl bg-white border border-gray-200 p-6 h-full hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-200 transition-all duration-300">
+                <div className="w-10 h-10 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                   <CircleDot className="w-5 h-5" />
                 </div>
                 <h3 className="text-base font-bold text-gray-900 mb-1.5">{t(language, 'landing.problem.3.title')}</h3>
@@ -348,11 +349,11 @@ export function LandingContent() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Reveal delay={0}>
-            <div className="border-2 border-indigo-200 rounded-2xl p-7 bg-white relative h-full hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-100 transition-all duration-300">
+            <div className="group border-2 border-indigo-200 rounded-2xl p-7 bg-white relative h-full hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-100 transition-all duration-300">
               <span className="absolute top-5 right-5 text-[9px] font-bold tracking-widest px-2 py-1 rounded-full bg-amber-100 text-amber-700">
                 {t(language, 'landing.atur.badge')}
               </span>
-              <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center mb-4 p-2.5">
+              <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center mb-4 p-2.5 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                 <OlahAturMark className="w-full h-full" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-1.5">OlahAtur</h3>
@@ -378,11 +379,11 @@ export function LandingContent() {
           </Reveal>
 
           <Reveal delay={120}>
-            <div className="border-2 border-blue-200 rounded-2xl p-7 bg-white relative h-full hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-100 transition-all duration-300">
+            <div className="group border-2 border-blue-200 rounded-2xl p-7 bg-white relative h-full hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-100 transition-all duration-300">
               <span className="absolute top-5 right-5 text-[9px] font-bold tracking-widest px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
                 {t(language, 'landing.saham.badge')}
               </span>
-              <div className="w-12 h-12 rounded-xl bg-blue-500 text-white flex items-center justify-center mb-4 p-2.5">
+              <div className="w-12 h-12 rounded-xl bg-blue-500 text-white flex items-center justify-center mb-4 p-2.5 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                 <OlahSahamMark className="w-full h-full" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-1.5">OlahSaham</h3>
