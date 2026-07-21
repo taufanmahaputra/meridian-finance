@@ -2,8 +2,10 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { MonthData, Category } from '@/types/finance';
+import { fmt, fmtCompact } from '@/lib/calculations';
+import { CHART_GRID_COLOR, CHART_AXIS_TICK, CHART_TOOLTIP_STYLE } from '@/lib/constants';
 
-export function CategoryStackChart({ months, categories }: { months: MonthData[]; categories: Category[] }) {
+export function CategoryStackChart({ months, categories, currency }: { months: MonthData[]; categories: Category[]; currency: string }) {
   const data = months.map((m) => {
     const row: Record<string, string | number> = { name: m.label };
     categories.forEach((c) => { row[c.name] = Math.max(0, m.cats[c.name] || 0); });
@@ -13,13 +15,13 @@ export function CategoryStackChart({ months, categories }: { months: MonthData[]
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-        <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-        <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 11 }} formatter={(value) => [`$${Number(value).toLocaleString()}`, undefined]} />
-        <Legend wrapperStyle={{ fontSize: 9 }} iconSize={8} />
+        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} vertical={false} />
+        <XAxis dataKey="name" tick={CHART_AXIS_TICK} axisLine={{ stroke: CHART_GRID_COLOR }} tickLine={false} />
+        <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={(v) => fmtCompact(v, currency)} width={64} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(value, name) => [fmt(Number(value), currency), name]} />
+        <Legend wrapperStyle={{ fontSize: 9 }} iconSize={8} iconType="circle" />
         {categories.map((c) => (
-          <Bar key={c.name} dataKey={c.name} stackId="a" fill={c.color} fillOpacity={0.7} radius={0} />
+          <Bar key={c.name} dataKey={c.name} stackId="a" fill={c.color} fillOpacity={0.85} radius={0} />
         ))}
       </BarChart>
     </ResponsiveContainer>

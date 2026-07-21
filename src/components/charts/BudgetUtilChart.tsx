@@ -2,6 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 import type { MonthData } from '@/types/finance';
+import { CHART_GRID_COLOR, CHART_AXIS_TICK, CHART_TOOLTIP_STYLE, STATUS_COLORS } from '@/lib/constants';
 
 export function BudgetUtilChart({ months }: { months: MonthData[] }) {
   const data = months.map((m) => ({
@@ -12,15 +13,15 @@ export function BudgetUtilChart({ months }: { months: MonthData[] }) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-        <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v) => `${v}%`} />
-        <Tooltip formatter={(value) => [`${value}%`, 'Utilization']} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-        <ReferenceLine y={100} stroke="#10b981" strokeDasharray="4 4" strokeOpacity={0.5} />
-        <ReferenceLine y={120} stroke="#ef4444" strokeDasharray="4 4" strokeOpacity={0.5} />
-        <Bar dataKey="util" radius={[6, 6, 0, 0]} barSize={36}>
+        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} vertical={false} />
+        <XAxis dataKey="name" tick={CHART_AXIS_TICK} axisLine={{ stroke: CHART_GRID_COLOR }} tickLine={false} />
+        <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={44} />
+        <Tooltip formatter={(value) => [`${value}%`, 'Utilization']} contentStyle={CHART_TOOLTIP_STYLE} />
+        <ReferenceLine y={100} stroke={STATUS_COLORS.good} strokeDasharray="4 4" strokeOpacity={0.6} />
+        <ReferenceLine y={120} stroke={STATUS_COLORS.danger} strokeDasharray="4 4" strokeOpacity={0.6} />
+        <Bar dataKey="util" radius={[4, 4, 0, 0]} barSize={32}>
           {data.map((entry, i) => (
-            <Cell key={i} fill={entry.util > 120 ? '#fecaca' : entry.util > 100 ? '#fef3c7' : '#d1fae5'} stroke={entry.util > 120 ? '#ef4444' : entry.util > 100 ? '#f59e0b' : '#10b981'} strokeWidth={2} />
+            <Cell key={i} fill={entry.util > 120 ? '#fecaca' : entry.util > 100 ? '#fef3c7' : '#d1fae5'} stroke={entry.util > 120 ? STATUS_COLORS.danger : entry.util > 100 ? STATUS_COLORS.warning : STATUS_COLORS.good} strokeWidth={2} />
           ))}
         </Bar>
       </BarChart>

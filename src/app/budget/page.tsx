@@ -4,13 +4,14 @@ import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { KpiCard } from '@/components/ui/KpiCard';
 import { BudgetUtilChart } from '@/components/charts/BudgetUtilChart';
 import { CategoryStackChart } from '@/components/charts/CategoryStackChart';
 import { EmptyState } from '@/components/EmptyState';
-import { fmt, fmtPct } from '@/lib/calculations';
+import { fmt, fmtPct, getTrendData } from '@/lib/calculations';
 
 export default function BudgetPage() {
-  const { months, categories, catBudgets, catColors, currency, t } = useFinance();
+  const { months, categories, catBudgets, catColors, monthlyBudget, currency, t } = useFinance();
 
   if (months.length === 0) {
     return (
@@ -29,6 +30,15 @@ export default function BudgetPage() {
 
   const m = months[months.length - 1];
   const p = months.length >= 2 ? months[months.length - 2] : null;
+  const remaining = monthlyBudget - m.expenses;
+  const prevRemaining = p ? monthlyBudget - p.expenses : null;
+
+  const kpis: { icon: React.ReactNode; iconBg: string; label: string; value: string; text?: string; className?: string }[] = [
+    { icon: <span>🎯</span>, iconBg: 'bg-indigo-50', label: t('budget.kpi.totalBudget'), value: fmt(monthlyBudget, currency) },
+    { icon: <span>💸</span>, iconBg: 'bg-red-50', label: t('budget.kpi.totalSpent'), value: fmt(m.expenses, currency), ...getTrendData(m.expenses, p?.expenses ?? null, true) },
+    { icon: <span>🧮</span>, iconBg: remaining >= 0 ? 'bg-emerald-50' : 'bg-red-50', label: t('budget.kpi.remaining'), value: fmt(remaining, currency), ...getTrendData(remaining, prevRemaining) },
+    { icon: <span>🚨</span>, iconBg: 'bg-amber-50', label: t('budget.kpi.overBudgetCats'), value: String(m.overBudgetCats) },
+  ];
 
   const anomalies: { msg: string; severity: 'danger' | 'warning' }[] = [];
   Object.entries(m.cats).forEach(([cat, spent]) => {
@@ -42,6 +52,12 @@ export default function BudgetPage() {
     <>
       <Topbar title={t('budget.title')} />
       <div className="p-4 sm:p-7 max-w-[1440px]">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {kpis.map((k) => (
+            <KpiCard key={k.label} icon={k.icon} iconBg={k.iconBg} label={k.label} value={k.value} trendText={k.text} trendClassName={k.className} />
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <Card>
             <CardHeader>{t('budget.utilization')}</CardHeader>
@@ -49,7 +65,7 @@ export default function BudgetPage() {
           </Card>
           <Card>
             <CardHeader>{t('budget.categoryStackedTrend')}</CardHeader>
-            <CardBody><CategoryStackChart months={months} categories={categories} /></CardBody>
+            <CardBody><CategoryStackChart months={months} categories={categories} currency={currency} /></CardBody>
           </Card>
         </div>
 

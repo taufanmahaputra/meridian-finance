@@ -88,7 +88,7 @@ function MonthlyDetailContent() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-4 mb-6">
           <Card>
             <CardHeader>{t('monthly.categorySplit')}</CardHeader>
-            <CardBody><CategoryPieChart month={m} catColors={catColors} /></CardBody>
+            <CardBody><CategoryPieChart month={m} catColors={catColors} currency={currency} /></CardBody>
           </Card>
           <Card>
             <CardHeader>{t('monthly.categoryDetail')}</CardHeader>
