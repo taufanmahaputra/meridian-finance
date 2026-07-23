@@ -1,4 +1,4 @@
-import type { MonthData, Insight, ActionItem, Category } from '@/types/finance';
+import type { MonthData, Insight, ActionItem, Category, Transaction } from '@/types/finance';
 import { CURRENCY_SYMBOLS, DEFAULT_CURRENCY } from './constants';
 import { DEFAULT_LANGUAGE, type Language } from './i18n';
 
@@ -79,6 +79,18 @@ export function fmt(n: number, currency: string = DEFAULT_CURRENCY, decimals = 0
 
 export function fmtPct(n: number): string {
   return `${n.toFixed(1)}%`;
+}
+
+// Compact form for chart axes/ticks — e.g. Rp1.2M, $850, S$3k — always in
+// the app's actual currency instead of a hardcoded symbol.
+export function fmtCompact(n: number, currency: string = DEFAULT_CURRENCY): string {
+  const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `${sign}${symbol}${(abs / 1_000_000_000).toFixed(1)}B`;
+  if (abs >= 1_000_000) return `${sign}${symbol}${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}${symbol}${(abs / 1_000).toFixed(0)}k`;
+  return `${sign}${symbol}${abs.toFixed(0)}`;
 }
 
 export function generateInsights(
@@ -263,6 +275,22 @@ export function suggestCategoryBudgets(months: MonthData[], categories: Category
   });
 
   return suggestions.sort((a, b) => b.suggestedBudget - a.suggestedBudget);
+}
+
+// Builds the full transaction ledger: itemized transactions where a
+// statement was imported, plus synthesized entries (one per category total,
+// one for salary) for months that only ever had aggregate totals entered.
+export function buildTransactionLedger(months: MonthData[], transactions: Transaction[]): Transaction[] {
+  const monthsWithItemized = new Set(transactions.map((tx) => tx.month).filter(Boolean));
+  const fromMonths: Transaction[] = [];
+  months.forEach((m) => {
+    if (monthsWithItemized.has(m.label)) return;
+    Object.entries(m.cats).forEach(([cat, total]) => {
+      if (total > 0) fromMonths.push({ date: m.label, description: `${cat} — ${m.label} total`, amount: total, category: cat, type: 'Expense' });
+    });
+    fromMonths.push({ date: m.label, description: `Salary — ${m.label}`, amount: m.income, category: 'Income', type: 'Income' });
+  });
+  return [...fromMonths, ...transactions];
 }
 
 export function generateForecast(months: MonthData[], periodsAhead = 6) {

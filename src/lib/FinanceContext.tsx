@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { MonthData, Transaction, Category } from '@/types/finance';
 import { computeDerived } from '@/lib/calculations';
 import { createClient } from '@/lib/supabase';
@@ -45,6 +45,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  // Tracks which user's data is currently loaded so a Supabase auth event
+  // that re-fires for the *same* user (e.g. the background token-refresh
+  // check that runs whenever the tab regains focus) doesn't trigger a
+  // full reload — that flips `loading` back to true and blanks the whole
+  // app behind the spinner even though nothing actually changed.
+  const loadedUserIdRef = useRef<string | null>(null);
 
   const catBudgets = useMemo(
     () => Object.fromEntries(categories.map((c) => [c.name, c.budget])),
@@ -116,14 +122,23 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user: u } }) => {
       setUser(u);
-      if (u) loadData(u.id);
-      else setLoading(false);
+      if (u) {
+        loadedUserIdRef.current = u.id;
+        loadData(u.id);
+      } else {
+        setLoading(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) loadData(u.id);
+      if (u && loadedUserIdRef.current !== u.id) {
+        loadedUserIdRef.current = u.id;
+        loadData(u.id);
+      } else if (!u) {
+        loadedUserIdRef.current = null;
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -268,6 +283,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    loadedUserIdRef.current = null;
     setUser(null);
     setMonths([]);
     setTransactions([]);
