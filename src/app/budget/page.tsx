@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Tag, Sparkles } from 'lucide-react';
+import { ArrowRight, Tag, Sparkles, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -11,10 +11,11 @@ import { BudgetUtilChart } from '@/components/charts/BudgetUtilChart';
 import { CategoryStackChart } from '@/components/charts/CategoryStackChart';
 import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct, getTrendData } from '@/lib/calculations';
+import { getCategoryIcon } from '@/lib/categoryIcons';
 import { cn } from '@/lib/utils';
 
 export default function BudgetPage() {
-  const { months, categories, catBudgets, catColors, monthlyBudget, currency, t } = useFinance();
+  const { months, categories, catBudgets, monthlyBudget, currency, t } = useFinance();
 
   const hasHistory = months.length > 0;
   // Nudge harder toward the Smart Auto-Generate flow when there's real
@@ -67,7 +68,7 @@ export default function BudgetPage() {
             showUpload
           />
         ) : (
-          <BudgetHistoryView months={months} categories={categories} catBudgets={catBudgets} catColors={catColors} monthlyBudget={monthlyBudget} currency={currency} t={t} />
+          <BudgetHistoryView months={months} categories={categories} catBudgets={catBudgets} monthlyBudget={monthlyBudget} currency={currency} t={t} />
         )}
       </div>
     </>
@@ -75,12 +76,11 @@ export default function BudgetPage() {
 }
 
 function BudgetHistoryView({
-  months, categories, catBudgets, catColors, monthlyBudget, currency, t,
+  months, categories, catBudgets, monthlyBudget, currency, t,
 }: {
   months: ReturnType<typeof useFinance>['months'];
   categories: ReturnType<typeof useFinance>['categories'];
   catBudgets: Record<string, number>;
-  catColors: Record<string, string>;
   monthlyBudget: number;
   currency: string;
   t: ReturnType<typeof useFinance>['t'];
@@ -128,52 +128,59 @@ function BudgetHistoryView({
         <h3 className="text-sm font-semibold mb-3">{t('budget.auditTitle')}</h3>
         <Card>
           <CardBody compact>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px]">
-                <thead>
-                  <tr className="bg-gray-50">
-                    {[
-                      t('budget.table.category'), t('budget.table.budget'), t('budget.table.actual'),
-                      t('budget.table.variance'), t('budget.table.pctUsed'), t('budget.table.mom'),
-                      t('budget.table.status'), t('budget.table.usage'),
-                    ].map((h, i) => (
-                      <th key={i} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(m.cats).sort((a, b) => b[1] - a[1]).map(([cat, spent]) => {
-                    const budget = catBudgets[cat] || 0;
-                    const variance = budget - spent;
-                    const pctUsed = budget > 0 ? (spent / budget) * 100 : null;
-                    const prevSpent = p?.cats?.[cat] || 0;
-                    const mom = prevSpent ? ((spent - prevSpent) / prevSpent) * 100 : null;
-                    const status = !budget ? 'neutral' : (pctUsed ?? 0) > 100 ? 'danger' : (pctUsed ?? 0) > 85 ? 'warning' : 'success';
-                    const statusLabel = !budget ? t('budget.status.noBudget') : (pctUsed ?? 0) > 100 ? t('budget.status.over') : (pctUsed ?? 0) > 85 ? t('budget.status.nearLimit') : t('budget.status.onTrack');
-                    const fillColor = !budget ? '#e2e8f0' : (pctUsed ?? 0) > 100 ? '#ef4444' : (pctUsed ?? 0) > 85 ? '#f59e0b' : '#10b981';
+            <div className="divide-y divide-gray-100">
+              {Object.entries(m.cats).sort((a, b) => b[1] - a[1]).map(([cat, spent]) => {
+                const budget = catBudgets[cat] || 0;
+                const variance = budget - spent;
+                const pctUsed = budget > 0 ? (spent / budget) * 100 : null;
+                const prevSpent = p?.cats?.[cat] || 0;
+                const mom = prevSpent ? ((spent - prevSpent) / prevSpent) * 100 : null;
+                const status = !budget ? 'neutral' : (pctUsed ?? 0) > 100 ? 'danger' : (pctUsed ?? 0) > 85 ? 'warning' : 'success';
+                const statusLabel = !budget ? t('budget.status.noBudget') : (pctUsed ?? 0) > 100 ? t('budget.status.over') : (pctUsed ?? 0) > 85 ? t('budget.status.nearLimit') : t('budget.status.onTrack');
+                const barClass = !budget ? 'bg-gray-300' : (pctUsed ?? 0) > 100 ? 'bg-gradient-to-r from-red-400 to-red-500' : (pctUsed ?? 0) > 85 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-emerald-400 to-emerald-500';
+                const Icon = getCategoryIcon(cat);
+                const MomIcon = mom == null ? Minus : mom > 0 ? ArrowUp : ArrowDown;
 
-                    return (
-                      <tr key={cat} className="border-b border-gray-100 hover:bg-gray-50/50">
-                        <td className="px-4 py-2.5">
-                          <span className="inline-block w-2 h-2 rounded-sm mr-2" style={{ backgroundColor: catColors[cat] || '#6b7280' }}></span>
-                          <strong>{cat}</strong>
-                        </td>
-                        <td className="px-4 py-2.5">{budget ? fmt(budget, currency) : '—'}</td>
-                        <td className="px-4 py-2.5 font-semibold">{fmt(spent, currency, 2)}</td>
-                        <td className={`px-4 py-2.5 font-medium ${variance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{budget ? fmt(variance, currency) : '—'}</td>
-                        <td className="px-4 py-2.5">{pctUsed != null ? fmtPct(pctUsed) : '—'}</td>
-                        <td className={`px-4 py-2.5 text-xs ${mom == null ? 'text-gray-400' : mom > 0 ? 'text-red-500' : 'text-emerald-600'}`}>{mom != null ? `${mom > 0 ? '+' : ''}${mom.toFixed(0)}%` : '—'}</td>
-                        <td className="px-4 py-2.5"><Badge variant={status as 'success' | 'warning' | 'danger' | 'neutral'}>{statusLabel}</Badge></td>
-                        <td className="px-4 py-2.5 w-20">
-                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, pctUsed || 0)}%`, backgroundColor: fillColor }} />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                return (
+                  <div key={cat} className="group px-5 py-4 hover:bg-gray-50/60 transition-colors">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-indigo-50 group-hover:text-indigo-600">
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-900">{cat}</span>
+                        <Badge variant={status as 'success' | 'warning' | 'danger' | 'neutral'}>{statusLabel}</Badge>
+                      </div>
+                      {mom != null && (
+                        <span className={cn(
+                          'inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0',
+                          mom > 0 ? 'text-red-600 bg-red-50' : 'text-emerald-600 bg-emerald-50'
+                        )}>
+                          <MomIcon className="w-3 h-3" /> {Math.abs(mom).toFixed(0)}%
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2.5 mb-2.5">
+                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={cn('h-full rounded-full transition-all duration-500', barClass)} style={{ width: `${Math.min(100, pctUsed || 0)}%` }} />
+                      </div>
+                      <span className="text-[11px] font-mono text-gray-400 w-9 text-right flex-shrink-0">{pctUsed != null ? fmtPct(pctUsed) : '—'}</span>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-[12px] flex-wrap">
+                      <span className="text-gray-400">{t('budget.table.actual')} <strong className="text-gray-900 font-mono font-semibold">{fmt(spent, currency, 2)}</strong></span>
+                      <span className="text-gray-400">{t('budget.table.budget')} <strong className="text-gray-600 font-mono">{budget ? fmt(budget, currency) : '—'}</strong></span>
+                      <span className="text-gray-400">
+                        {t('budget.table.variance')}{' '}
+                        <strong className={cn('font-mono', budget ? (variance >= 0 ? 'text-emerald-600' : 'text-red-500') : 'text-gray-400')}>
+                          {budget ? fmt(variance, currency) : '—'}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardBody>
         </Card>
