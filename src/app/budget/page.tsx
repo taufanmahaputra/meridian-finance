@@ -135,9 +135,13 @@ function BudgetHistoryView({
                 const pctUsed = budget > 0 ? (spent / budget) * 100 : null;
                 const prevSpent = p?.cats?.[cat] || 0;
                 const mom = prevSpent ? ((spent - prevSpent) / prevSpent) * 100 : null;
-                const status = !budget ? 'neutral' : (pctUsed ?? 0) > 100 ? 'danger' : (pctUsed ?? 0) > 85 ? 'warning' : 'success';
-                const statusLabel = !budget ? t('budget.status.noBudget') : (pctUsed ?? 0) > 100 ? t('budget.status.over') : (pctUsed ?? 0) > 85 ? t('budget.status.nearLimit') : t('budget.status.onTrack');
-                const barClass = !budget ? 'bg-gray-300' : (pctUsed ?? 0) > 100 ? 'bg-gradient-to-r from-red-400 to-red-500' : (pctUsed ?? 0) > 85 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-emerald-400 to-emerald-500';
+                const isOver = !!budget && (pctUsed ?? 0) > 100;
+                const status = !budget ? 'neutral' : isOver ? 'danger' : (pctUsed ?? 0) > 85 ? 'warning' : 'success';
+                const statusLabel = !budget ? t('budget.status.noBudget') : isOver ? t('budget.status.over') : (pctUsed ?? 0) > 85 ? t('budget.status.nearLimit') : t('budget.status.onTrack');
+                // Color is reserved for the one state that actually needs
+                // attention (over budget) — everything else is a neutral
+                // gray bar so a normal row doesn't compete for the eye.
+                const barClass = isOver ? 'bg-red-400' : 'bg-gray-400';
                 const Icon = getCategoryIcon(cat);
                 const MomIcon = mom == null ? Minus : mom > 0 ? ArrowUp : ArrowDown;
 
@@ -152,17 +156,14 @@ function BudgetHistoryView({
                         <Badge variant={status as 'success' | 'warning' | 'danger' | 'neutral'}>{statusLabel}</Badge>
                       </div>
                       {mom != null && (
-                        <span className={cn(
-                          'inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0',
-                          mom > 0 ? 'text-red-600 bg-red-50' : 'text-emerald-600 bg-emerald-50'
-                        )}>
+                        <span className="inline-flex items-center gap-0.5 text-[11px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 text-gray-400 bg-gray-50">
                           <MomIcon className="w-3 h-3" /> {Math.abs(mom).toFixed(0)}%
                         </span>
                       )}
                     </div>
 
                     <div className="flex items-center gap-2.5 mb-2.5">
-                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div className={cn('h-full rounded-full transition-all duration-500', barClass)} style={{ width: `${Math.min(100, pctUsed || 0)}%` }} />
                       </div>
                       <span className="text-[11px] font-mono text-gray-400 w-9 text-right flex-shrink-0">{pctUsed != null ? fmtPct(pctUsed) : '—'}</span>
@@ -173,7 +174,7 @@ function BudgetHistoryView({
                       <span className="text-gray-400">{t('budget.table.budget')} <strong className="text-gray-600 font-mono">{budget ? fmt(budget, currency) : '—'}</strong></span>
                       <span className="text-gray-400">
                         {t('budget.table.variance')}{' '}
-                        <strong className={cn('font-mono', budget ? (variance >= 0 ? 'text-emerald-600' : 'text-red-500') : 'text-gray-400')}>
+                        <strong className={cn('font-mono', isOver ? 'text-red-500' : 'text-gray-600')}>
                           {budget ? fmt(variance, currency) : '—'}
                         </strong>
                       </span>
