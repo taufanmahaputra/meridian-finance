@@ -2,6 +2,7 @@
 
 import { fmt, fmtPct } from '@/lib/calculations';
 import { Badge } from '@/components/ui/Badge';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 interface TopCategoriesBarProps {
   cats: Record<string, number>;
@@ -33,9 +34,9 @@ export function TopCategoriesBar({ cats, catColors, catBudgets = {}, currency, l
         return (
           <div key={name}>
             <div className="flex items-center justify-between mb-1">
-              <span className="flex items-center gap-2 text-[13px] font-medium text-gray-700 truncate">
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                {name}
+              <span className="flex items-center gap-2 text-[13px] font-medium text-gray-700 truncate min-w-0">
+                <CategoryIcon name={name} color={color} size="sm" />
+                <span className="truncate">{name}</span>
               </span>
               <span className="flex items-center gap-1.5 flex-shrink-0">
                 <span className="text-[13px] font-semibold text-gray-900">{fmt(spent, currency)}</span>

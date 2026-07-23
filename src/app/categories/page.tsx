@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, Sparkles, X, Check } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Trash2, Sparkles, X, Check, ChevronRight } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import { fmt, suggestCategoryBudgets, type BudgetSuggestion } from '@/lib/calculations';
 import { CHART_COLORS, CURRENCY_SYMBOLS, nextChartColor } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -95,16 +97,16 @@ export default function CategoriesPage() {
               {categories.map((c) => (
                 <div key={c.id} className="flex items-center gap-3 px-5 py-3.5">
                   <div className="relative flex-shrink-0">
-                    <button
+                    <CategoryIcon
+                      name={c.name}
+                      color={c.color}
+                      size="sm"
                       onClick={() => setColorPickerFor(colorPickerFor === c.id ? null : (c.id ?? null))}
-                      className="w-4 h-4 rounded-full ring-2 ring-offset-2 ring-transparent hover:ring-gray-200 transition-all"
-                      style={{ backgroundColor: c.color }}
-                      aria-label={t('budget.categories.changeColor')}
                     />
                     {colorPickerFor === c.id && (
                       <>
                         <div className="fixed inset-0 z-[59]" onClick={() => setColorPickerFor(null)} />
-                        <div className="absolute z-[60] top-6 left-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 grid grid-cols-6 gap-1.5 w-40">
+                        <div className="absolute z-[60] top-8 left-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 grid grid-cols-6 gap-1.5 w-40">
                           {CHART_COLORS.map((color) => (
                             <button
                               key={color}
@@ -139,6 +141,13 @@ export default function CategoriesPage() {
                     />
                     <span className="w-10 text-left">{t('budget.categories.perMonth')}</span>
                   </div>
+                  <Link
+                    href={`/categories/${encodeURIComponent(c.name)}`}
+                    className="text-gray-300 hover:text-indigo-500 transition-colors flex-shrink-0"
+                    title={t('categoryDetail.trend')}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
                   <button
                     onClick={() => c.id && deleteCategory(c.id)}
                     className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"

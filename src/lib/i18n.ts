@@ -347,6 +347,9 @@ const en: Dict = {
   'categories.subtitle': 'Add, edit, and set monthly budgets for each category.',
   'categories.count': '{n} categories',
   'categories.totalBudget': 'Total budget',
+  'categoryDetail.trend': 'Monthly Trend',
+  'categoryDetail.transactions': 'Transactions',
+  'categoryDetail.noTransactions': 'No transactions in this category yet.',
 
   'forecast.title': 'Forecast',
   'forecast.linearProjection': 'Linear Projection',
@@ -783,6 +786,9 @@ const id: Dict = {
   'categories.subtitle': 'Tambah, edit, dan atur anggaran bulanan untuk tiap kategori.',
   'categories.count': '{n} kategori',
   'categories.totalBudget': 'Total anggaran',
+  'categoryDetail.trend': 'Tren Bulanan',
+  'categoryDetail.transactions': 'Transaksi',
+  'categoryDetail.noTransactions': 'Belum ada transaksi di kategori ini.',
 
   'forecast.title': 'Proyeksi',
   'forecast.linearProjection': 'Proyeksi Linear',

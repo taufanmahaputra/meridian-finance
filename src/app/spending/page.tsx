@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { CategoryStackChart } from '@/components/charts/CategoryStackChart';
 import { CategoryPieChart } from '@/components/charts/CategoryPieChart';
 import { TopCategoriesBar } from '@/components/charts/TopCategoriesBar';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import { EmptyState } from '@/components/EmptyState';
 import { fmt, getTrendData, buildTransactionLedger } from '@/lib/calculations';
 
@@ -94,28 +95,19 @@ export default function SpendingPage() {
               {!catFilter ? (
                 <div className="py-10 text-center text-gray-400 text-sm">{t('spending.drilldown.prompt')}</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[13px]">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        {[t('transactions.date'), t('transactions.description'), t('transactions.amount')].map((h, i) => (
-                          <th key={i} className="px-4 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredTx.map((tx, i) => (
-                        <tr key={tx.id ?? i} className="border-b border-gray-100 hover:bg-gray-50/50">
-                          <td className="px-4 py-2.5 text-gray-500">{tx.date}</td>
-                          <td className="px-4 py-2.5">{tx.description}</td>
-                          <td className="px-4 py-2.5 font-semibold">{fmt(tx.amount, currency, 2)}</td>
-                        </tr>
-                      ))}
-                      {filteredTx.length === 0 && (
-                        <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-400 text-sm">{t('spending.drilldown.noTransactions')}</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div className="divide-y divide-gray-100">
+                  {filteredTx.map((tx, i) => (
+                    <div key={tx.id ?? i} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-medium text-gray-900 truncate">{tx.description}</div>
+                        <div className="text-[11px] text-gray-400">{tx.date}</div>
+                      </div>
+                      <span className="text-[13px] font-semibold font-mono flex-shrink-0">{fmt(tx.amount, currency, 2)}</span>
+                    </div>
+                  ))}
+                  {filteredTx.length === 0 && (
+                    <div className="py-10 text-center text-gray-400 text-sm">{t('spending.drilldown.noTransactions')}</div>
+                  )}
                 </div>
               )}
             </CardBody>
@@ -130,12 +122,12 @@ export default function SpendingPage() {
                 .filter(([cat, spent]) => (catBudgets[cat] || 0) > 0 && spent > (catBudgets[cat] || 0))
                 .sort((a, b) => (b[1] - (catBudgets[b[0]] || 0)) - (a[1] - (catBudgets[a[0]] || 0)))
                 .map(([cat, spent]) => (
-                  <div key={cat} className="flex items-center justify-between px-5 py-3 border-b border-gray-100 last:border-0">
-                    <span className="flex items-center gap-2 text-[13px] font-medium">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: catColors[cat] || '#6b7280' }} />
-                      {cat}
+                  <div key={cat} className="flex items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 last:border-0">
+                    <span className="flex items-center gap-2.5 text-[13px] font-medium min-w-0">
+                      <CategoryIcon name={cat} color={catColors[cat] || '#6b7280'} size="sm" />
+                      <span className="truncate">{cat}</span>
                     </span>
-                    <span className="text-[13px]">
+                    <span className="text-[13px] flex-shrink-0">
                       <span className="font-semibold text-red-500">{fmt(spent, currency)}</span>
                       <span className="text-gray-400"> / {fmt(catBudgets[cat] || 0, currency)}</span>
                     </span>

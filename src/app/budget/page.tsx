@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Tag, Sparkles, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { ArrowRight, Tag, Sparkles, ArrowUp, ArrowDown, Minus, ChevronRight } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -9,13 +9,14 @@ import { Badge } from '@/components/ui/Badge';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { BudgetUtilChart } from '@/components/charts/BudgetUtilChart';
 import { CategoryStackChart } from '@/components/charts/CategoryStackChart';
+import { CategoryIcon } from '@/components/CategoryIcon';
+import { CategoryProgressRing } from '@/components/CategoryProgressRing';
 import { EmptyState } from '@/components/EmptyState';
 import { fmt, fmtPct, getTrendData } from '@/lib/calculations';
-import { getCategoryIcon } from '@/lib/categoryIcons';
 import { cn } from '@/lib/utils';
 
 export default function BudgetPage() {
-  const { months, categories, catBudgets, monthlyBudget, currency, t } = useFinance();
+  const { months, categories, catBudgets, catColors, monthlyBudget, currency, t } = useFinance();
 
   const hasHistory = months.length > 0;
   // Nudge harder toward the Smart Auto-Generate flow when there's real
@@ -68,7 +69,7 @@ export default function BudgetPage() {
             showUpload
           />
         ) : (
-          <BudgetHistoryView months={months} categories={categories} catBudgets={catBudgets} monthlyBudget={monthlyBudget} currency={currency} t={t} />
+          <BudgetHistoryView months={months} categories={categories} catBudgets={catBudgets} catColors={catColors} monthlyBudget={monthlyBudget} currency={currency} t={t} />
         )}
       </div>
     </>
@@ -76,11 +77,12 @@ export default function BudgetPage() {
 }
 
 function BudgetHistoryView({
-  months, categories, catBudgets, monthlyBudget, currency, t,
+  months, categories, catBudgets, catColors, monthlyBudget, currency, t,
 }: {
   months: ReturnType<typeof useFinance>['months'];
   categories: ReturnType<typeof useFinance>['categories'];
   catBudgets: Record<string, number>;
+  catColors: Record<string, string>;
   monthlyBudget: number;
   currency: string;
   t: ReturnType<typeof useFinance>['t'];
@@ -138,43 +140,41 @@ function BudgetHistoryView({
                 const isOver = !!budget && (pctUsed ?? 0) > 100;
                 const status = !budget ? 'neutral' : isOver ? 'danger' : (pctUsed ?? 0) > 85 ? 'warning' : 'success';
                 const statusLabel = !budget ? t('budget.status.noBudget') : isOver ? t('budget.status.over') : (pctUsed ?? 0) > 85 ? t('budget.status.nearLimit') : t('budget.status.onTrack');
-                const Icon = getCategoryIcon(cat);
                 const MomIcon = mom == null ? Minus : mom > 0 ? ArrowUp : ArrowDown;
 
                 return (
-                  <div key={cat} className="group px-5 py-4 hover:bg-gray-50/60 transition-colors">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-indigo-50 group-hover:text-indigo-600">
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                  <Link
+                    key={cat}
+                    href={`/categories/${encodeURIComponent(cat)}`}
+                    className="group flex items-center gap-4 px-5 py-4 hover:bg-gray-50/60 transition-colors"
+                  >
+                    <CategoryIcon name={cat} color={catColors[cat] || '#6b7280'} size="md" />
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
                         <span className="text-sm font-semibold text-gray-900">{cat}</span>
                         <Badge variant={status as 'success' | 'warning' | 'danger' | 'neutral'}>{statusLabel}</Badge>
+                        {mom != null && (
+                          <span className="inline-flex items-center gap-0.5 text-[11px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 text-gray-400 bg-gray-50">
+                            <MomIcon className="w-3 h-3" /> {Math.abs(mom).toFixed(0)}%
+                          </span>
+                        )}
                       </div>
-                      {mom != null && (
-                        <span className="inline-flex items-center gap-0.5 text-[11px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 text-gray-400 bg-gray-50">
-                          <MomIcon className="w-3 h-3" /> {Math.abs(mom).toFixed(0)}%
+                      <div className="flex items-center gap-4 text-[12px] flex-wrap">
+                        <span className="text-gray-400">{t('budget.table.actual')} <strong className="text-gray-900 font-mono font-semibold">{fmt(spent, currency, 2)}</strong></span>
+                        <span className="text-gray-400">{t('budget.table.budget')} <strong className="text-gray-600 font-mono">{budget ? fmt(budget, currency) : '—'}</strong></span>
+                        <span className="text-gray-400">
+                          {t('budget.table.variance')}{' '}
+                          <strong className={cn('font-mono', isOver ? 'text-red-500' : 'text-gray-600')}>
+                            {budget ? fmt(variance, currency) : '—'}
+                          </strong>
                         </span>
-                      )}
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-[12px] flex-wrap">
-                      <span className="text-gray-400">{t('budget.table.actual')} <strong className="text-gray-900 font-mono font-semibold">{fmt(spent, currency, 2)}</strong></span>
-                      <span className="text-gray-400">{t('budget.table.budget')} <strong className="text-gray-600 font-mono">{budget ? fmt(budget, currency) : '—'}</strong></span>
-                      <span className="text-gray-400">
-                        {t('budget.table.variance')}{' '}
-                        <strong className={cn('font-mono', isOver ? 'text-red-500' : 'text-gray-600')}>
-                          {budget ? fmt(variance, currency) : '—'}
-                        </strong>
-                      </span>
-                      <span className="text-gray-400">
-                        {t('budget.table.pctUsed')}{' '}
-                        <strong className={cn('font-mono', isOver ? 'text-red-500' : 'text-gray-600')}>
-                          {pctUsed != null ? fmtPct(pctUsed) : '—'}
-                        </strong>
-                      </span>
-                    </div>
-                  </div>
+                    <CategoryProgressRing percent={pctUsed} isOver={isOver} size={44} stroke={4} />
+                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-400" />
+                  </Link>
                 );
               })}
             </div>

@@ -27,3 +27,27 @@ export function getCategoryIcon(name: string): LucideIcon {
   const match = CATEGORY_ICON_RULES.find((r) => r.keywords.some((k) => lower.includes(k)));
   return match?.icon ?? Tag;
 }
+
+// Same keyword rules, glossy emoji instead — used inside the colorful "3D"
+// CategoryIcon tile, where a real emoji glyph reads as more alive than a
+// flat outline icon. 🏷️ is the fallback for anything unrecognized.
+const CATEGORY_EMOJI_RULES: { keywords: string[]; emoji: string }[] = [
+  { keywords: ['housing', 'rent', 'sewa', 'kos', 'kontrakan', 'tempat tinggal'], emoji: '🏠' },
+  { keywords: ['food', 'grocery', 'groceries', 'makan', 'dapur', 'restaurant', 'restoran'], emoji: '🍔' },
+  { keywords: ['transport', 'fuel', 'bensin', 'ojek', 'gojek', 'grab', 'parking', 'parkir', 'tol'], emoji: '🚗' },
+  { keywords: ['shopping', 'belanja'], emoji: '🛍️' },
+  { keywords: ['entertainment', 'hiburan', 'movie', 'bioskop', 'game'], emoji: '🎬' },
+  { keywords: ['utilities', 'listrik', 'electricity', 'water', 'air', 'internet', 'wifi', 'pulsa'], emoji: '⚡' },
+  { keywords: ['travel', 'liburan', 'vacation', 'trip', 'hotel', 'flight', 'tiket'], emoji: '✈️' },
+  { keywords: ['subscription', 'langganan', 'netflix', 'spotify'], emoji: '🔁' },
+  { keywords: ['health', 'kesehatan', 'medical', 'dokter', 'obat', 'rumah sakit'], emoji: '❤️‍🩹' },
+  { keywords: ['personal care', 'perawatan', 'salon', 'kecantikan'], emoji: '✨' },
+  { keywords: ['installment', 'cicilan', 'loan', 'kredit', 'debt', 'hutang'], emoji: '💳' },
+  { keywords: ['income', 'salary', 'gaji', 'pendapatan'], emoji: '💰' },
+];
+
+export function getCategoryEmoji(name: string): string {
+  const lower = name.toLowerCase();
+  const match = CATEGORY_EMOJI_RULES.find((r) => r.keywords.some((k) => lower.includes(k)));
+  return match?.emoji ?? '🏷️';
+}

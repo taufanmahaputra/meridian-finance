@@ -4,10 +4,11 @@ import { useState, useMemo } from 'react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { TopCategoriesBar } from '@/components/charts/TopCategoriesBar';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import { fmt, buildTransactionLedger } from '@/lib/calculations';
+import { cn } from '@/lib/utils';
 
 const PER_PAGE = 25;
 
@@ -89,32 +90,22 @@ export default function TransactionsPage() {
 
         <Card>
           <CardBody compact>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px]">
-                <thead>
-                  <tr className="bg-gray-50">
-                    {[t('transactions.date'), t('transactions.description'), `${t('transactions.amount')} (${currency})`, t('transactions.category'), t('transactions.type')].map((h, i) => (
-                      <th key={i} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {slice.map((tx, i) => (
-                    <tr key={i} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-2.5 text-gray-500">{tx.date}</td>
-                      <td className="px-4 py-2.5">{tx.description}</td>
-                      <td className={`px-4 py-2.5 font-semibold ${tx.type === 'Income' ? 'text-emerald-600' : ''}`}>
-                        {tx.type === 'Income' ? '+' : '-'}{fmt(tx.amount, currency, 2)}
-                      </td>
-                      <td className="px-4 py-2.5"><Badge variant={tx.type === 'Income' ? 'success' : 'info'}>{tx.category}</Badge></td>
-                      <td className="px-4 py-2.5 text-gray-500">{tx.type}</td>
-                    </tr>
-                  ))}
-                  {slice.length === 0 && (
-                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 text-sm">{t('transactions.noneFound')}</td></tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="divide-y divide-gray-100">
+              {slice.map((tx, i) => (
+                <div key={i} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors">
+                  <CategoryIcon name={tx.category} color={catColors[tx.category] || '#6b7280'} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium text-gray-900 truncate">{tx.description}</div>
+                    <div className="text-[11px] text-gray-400">{tx.date} · {tx.category}</div>
+                  </div>
+                  <span className={cn('text-[13px] font-semibold font-mono flex-shrink-0', tx.type === 'Income' ? 'text-emerald-600' : 'text-gray-900')}>
+                    {tx.type === 'Income' ? '+' : '-'}{fmt(tx.amount, currency, 2)}
+                  </span>
+                </div>
+              ))}
+              {slice.length === 0 && (
+                <div className="px-5 py-10 text-center text-gray-400 text-sm">{t('transactions.noneFound')}</div>
+              )}
             </div>
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
               <span className="text-xs text-gray-400">{filtered.length} {t('transactions.count')}</span>
