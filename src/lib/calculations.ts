@@ -1,4 +1,4 @@
-import type { MonthData, Insight, ActionItem } from '@/types/finance';
+import type { MonthData, Insight, ActionItem, Category } from '@/types/finance';
 import { CURRENCY_SYMBOLS, DEFAULT_CURRENCY } from './constants';
 import { DEFAULT_LANGUAGE, type Language } from './i18n';
 
@@ -219,6 +219,50 @@ export function generateActions(
   });
 
   return actions;
+}
+
+export interface BudgetSuggestion {
+  name: string;
+  currentBudget: number | null; // null when the category doesn't exist yet
+  suggestedBudget: number;
+  isNew: boolean;
+}
+
+// Rounds up to a "clean" 2-significant-figure number (e.g. 1,234,567 -> 1,300,000;
+// 45,000 -> 45,000) so suggested budgets read like numbers a person would
+// actually type, not a raw average.
+function roundToNiceNumber(n: number): number {
+  if (n <= 0) return 0;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(n)) - 1);
+  return Math.ceil(n / magnitude) * magnitude;
+}
+
+// Suggests a monthly budget per category from real spending history: the
+// average spend across months where that category actually had activity,
+// plus a 10% buffer, rounded to a clean number. Categories that show up in
+// transaction history but have no Category row yet are flagged isNew so the
+// caller can create them. Categories with zero historical spend are skipped
+// entirely — there's no real data to base a suggestion on.
+export function suggestCategoryBudgets(months: MonthData[], categories: Category[]): BudgetSuggestion[] {
+  const existingByName = new Map(categories.map((c) => [c.name, c]));
+  const allNames = new Set<string>();
+  months.forEach((m) => Object.keys(m.cats).forEach((name) => allNames.add(name)));
+
+  const suggestions: BudgetSuggestion[] = [];
+  allNames.forEach((name) => {
+    const activeSpends = months.map((m) => m.cats[name] ?? 0).filter((v) => v > 0);
+    if (activeSpends.length === 0) return;
+    const avg = activeSpends.reduce((a, b) => a + b, 0) / activeSpends.length;
+    const existing = existingByName.get(name);
+    suggestions.push({
+      name,
+      currentBudget: existing ? existing.budget : null,
+      suggestedBudget: roundToNiceNumber(avg * 1.1),
+      isNew: !existing,
+    });
+  });
+
+  return suggestions.sort((a, b) => b.suggestedBudget - a.suggestedBudget);
 }
 
 export function generateForecast(months: MonthData[], periodsAhead = 6) {
