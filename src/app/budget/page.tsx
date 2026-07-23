@@ -138,10 +138,6 @@ function BudgetHistoryView({
                 const isOver = !!budget && (pctUsed ?? 0) > 100;
                 const status = !budget ? 'neutral' : isOver ? 'danger' : (pctUsed ?? 0) > 85 ? 'warning' : 'success';
                 const statusLabel = !budget ? t('budget.status.noBudget') : isOver ? t('budget.status.over') : (pctUsed ?? 0) > 85 ? t('budget.status.nearLimit') : t('budget.status.onTrack');
-                // Color is reserved for the one state that actually needs
-                // attention (over budget) — everything else is a neutral
-                // gray bar so a normal row doesn't compete for the eye.
-                const barClass = isOver ? 'bg-red-400' : 'bg-gray-400';
                 const Icon = getCategoryIcon(cat);
                 const MomIcon = mom == null ? Minus : mom > 0 ? ArrowUp : ArrowDown;
 
@@ -162,13 +158,6 @@ function BudgetHistoryView({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2.5 mb-2.5">
-                      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={cn('h-full rounded-full transition-all duration-500', barClass)} style={{ width: `${Math.min(100, pctUsed || 0)}%` }} />
-                      </div>
-                      <span className="text-[11px] font-mono text-gray-400 w-9 text-right flex-shrink-0">{pctUsed != null ? fmtPct(pctUsed) : '—'}</span>
-                    </div>
-
                     <div className="flex items-center gap-4 text-[12px] flex-wrap">
                       <span className="text-gray-400">{t('budget.table.actual')} <strong className="text-gray-900 font-mono font-semibold">{fmt(spent, currency, 2)}</strong></span>
                       <span className="text-gray-400">{t('budget.table.budget')} <strong className="text-gray-600 font-mono">{budget ? fmt(budget, currency) : '—'}</strong></span>
@@ -176,6 +165,12 @@ function BudgetHistoryView({
                         {t('budget.table.variance')}{' '}
                         <strong className={cn('font-mono', isOver ? 'text-red-500' : 'text-gray-600')}>
                           {budget ? fmt(variance, currency) : '—'}
+                        </strong>
+                      </span>
+                      <span className="text-gray-400">
+                        {t('budget.table.pctUsed')}{' '}
+                        <strong className={cn('font-mono', isOver ? 'text-red-500' : 'text-gray-600')}>
+                          {pctUsed != null ? fmtPct(pctUsed) : '—'}
                         </strong>
                       </span>
                     </div>
