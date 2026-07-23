@@ -74,7 +74,7 @@ export const MAX_SIGNAL_BATCHES = 3;
 // OlahAtur is in closed beta — only ADMIN_EMAIL can access these routes.
 // Everyone else is bounced to /home and shown the beta-access modal.
 export const OLAHATUR_BETA_PATHS = [
-  '/dashboard', '/monthly', '/transactions', '/spending', '/budget', '/forecast', '/insights', '/upload',
+  '/dashboard', '/monthly', '/transactions', '/spending', '/budget', '/categories', '/forecast', '/insights', '/upload',
 ];
 
 export const WHATSAPP_NUMBER = '6289684679315';
