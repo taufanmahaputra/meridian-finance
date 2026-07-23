@@ -7,7 +7,7 @@ import {
   LayoutGrid, DollarSign, CheckCircle, Activity,
   Lightbulb, TrendingUp, Upload, X, CalendarDays, Settings,
   Signal, Compass, ChevronDown, Check, ListChecks, ChevronLeft, ChevronRight,
-  Languages, HelpCircle, LogOut, PieChart, Tag,
+  Languages, HelpCircle, LogOut, PieChart, Tag, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
@@ -18,7 +18,20 @@ import { OlahDanaMark } from '@/components/logos/OlahDanaMark';
 import { OlahAturMark } from '@/components/logos/OlahAturMark';
 import { OlahSahamMark } from '@/components/logos/OlahSahamMark';
 
-const olahAturSections = [
+interface NavItem {
+  href: string;
+  labelKey: string;
+  icon: LucideIcon;
+  // Optional custom active-state test — defaults to an exact pathname match.
+  // Used so a parent item can stay highlighted on its drill-down sub-routes.
+  match?: (path: string) => boolean;
+}
+interface NavSection {
+  titleKey: string;
+  items: NavItem[];
+}
+
+const olahAturSections: NavSection[] = [
   {
     titleKey: 'nav.section.overview',
     items: [
@@ -26,8 +39,9 @@ const olahAturSections = [
       { href: '/monthly', labelKey: 'nav.monthly', icon: CalendarDays },
       { href: '/transactions', labelKey: 'nav.transactions', icon: DollarSign },
       { href: '/spending', labelKey: 'nav.spending', icon: PieChart },
-      { href: '/budget', labelKey: 'nav.budget', icon: CheckCircle },
-      { href: '/categories', labelKey: 'nav.categories', icon: Tag },
+      // Budget & Audit owns the per-category drill-down (/categories/[name]),
+      // so it stays highlighted there and the detail's back button returns here.
+      { href: '/budget', labelKey: 'nav.budget', icon: CheckCircle, match: (p) => p === '/budget' || p.startsWith('/categories/') },
     ],
   },
   {
@@ -38,14 +52,17 @@ const olahAturSections = [
     ],
   },
   {
-    titleKey: 'nav.section.data',
+    titleKey: 'nav.section.manage',
     items: [
       { href: '/upload', labelKey: 'nav.upload', icon: Upload },
+      // Categories management is a setup task (add/edit/budget/color), not a
+      // daily-use view — grouped here rather than in Overview.
+      { href: '/categories', labelKey: 'nav.categories', icon: Tag },
     ],
   },
 ];
 
-const olahSahamSections = [
+const olahSahamSections: NavSection[] = [
   {
     titleKey: 'nav.section.invest',
     items: [
@@ -245,7 +262,7 @@ export function Sidebar() {
                 {t(section.titleKey)}
               </div>
               {section.items.map((item) => {
-                const active = pathname === item.href;
+                const active = item.match ? item.match(pathname) : pathname === item.href;
                 return (
                   <Link
                     key={item.href}

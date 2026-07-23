@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { Plus, Trash2, Sparkles, X, Check, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Sparkles, X, Check } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -141,13 +140,6 @@ export default function CategoriesPage() {
                     />
                     <span className="w-10 text-left">{t('budget.categories.perMonth')}</span>
                   </div>
-                  <Link
-                    href={`/categories/${encodeURIComponent(c.name)}`}
-                    className="text-gray-300 hover:text-indigo-500 transition-colors flex-shrink-0"
-                    title={t('categoryDetail.trend')}
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
                   <button
                     onClick={() => c.id && deleteCategory(c.id)}
                     className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
