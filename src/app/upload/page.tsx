@@ -16,6 +16,10 @@ import {
   BANK_TEMPLATES, detectTemplate, guessColumns, parseRows, dateRange, inferMonthLabel,
   type BankTemplate, type ParsedRow,
 } from '@/lib/bankTemplates';
+import { extractStatementLines, describeExtractionError } from '@/lib/pdfStatement';
+import {
+  CARD_TEMPLATES, detectCardTemplate, detectPeriod, parseCardStatement,
+} from '@/lib/creditCardStatement';
 import { STATEMENT_CURRENCIES, convertAmount, type FxQuote } from '@/lib/fx';
 import { categorizeByRules, categorizeIncome, collectUnmatched, type CategoryMethod } from '@/lib/autoCategorize';
 import type { Transaction } from '@/types/finance';
@@ -49,6 +53,7 @@ export default function UploadPage() {
   const { months, categories, importMonth, currency, t } = useFinance();
 
   const [files, setFiles] = useState<StatementFile[]>([]);
+  const [fileErrors, setFileErrors] = useState<{ fileName: string; reason: 'scanned' | 'unreadable' | 'empty' }[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importedLabels, setImportedLabels] = useState<string[]>([]);
@@ -97,12 +102,108 @@ export default function UploadPage() {
   }, [files, currency]);
 
   const processFile = useCallback((file: File) => {
+    /** Shared tail for both CSV and PDF: categorize, register, fetch FX. */
+    const finish = async (
+      parsed: { rows: ParsedRow[]; skipped: number; dateIssues: number },
+      meta: { bankId: string; bankLabel: string; detected: boolean; currency: string }
+    ) => {
+      if (parsed.rows.length === 0) {
+        setFileErrors((prev) => [...prev, { fileName: file.name, reason: 'empty' }]);
+        return;
+      }
+
+      // Rule-based pass runs immediately; the AI pass is a separate,
+      // explicit action so an import never silently costs quota.
+      const drafted: DraftRow[] = parsed.rows.map((r, i) => {
+        const guess = r.type === 'Income'
+          ? categorizeIncome(categoryNames)
+          : categorizeByRules(r.description, categoryNames);
+        const fromFile = r.category && categoryNames.includes(r.category) ? r.category : null;
+        return {
+          ...r,
+          key: `${file.name}-${i}`,
+          category: fromFile ?? guess?.category ?? 'Other',
+          method: fromFile ? 'rule' : (guess?.method ?? 'fallback'),
+          matchedOn: fromFile ? 'from file' : guess?.matchedOn,
+          include: true,
+        };
+      });
+
+      const entry: StatementFile = {
+        id: `${file.name}-${Date.now()}`,
+        fileName: file.name,
+        bankId: meta.bankId,
+        bankLabel: meta.bankLabel,
+        detected: meta.detected,
+        currency: meta.currency,
+        fx: null,
+        manualRate: '',
+        rows: drafted,
+        skipped: parsed.skipped,
+        dateIssues: parsed.dateIssues,
+      };
+
+      setFiles((prev) => [...prev, entry]);
+      setImportedLabels([]);
+
+      // Default the target month from the statement's own dates.
+      const label = inferMonthLabel(parsed.rows);
+      if (label) {
+        setTargetMonth((cur) => {
+          if (cur) return cur;
+          return months.some((m) => m.label === label) ? label : '__new__';
+        });
+        setNewMonthLabel((cur) => cur || label);
+      }
+
+      // Fetch the conservative (max) rate for this statement's date range.
+      if (meta.currency !== currency) {
+        const range = dateRange(parsed.rows);
+        const qs = new URLSearchParams({ from: meta.currency, to: currency });
+        if (range) { qs.set('start', range.start); qs.set('end', range.end); }
+        try {
+          const fx: FxQuote = await fetch(`/api/fx-rate?${qs}`).then((r) => r.json());
+          setFiles((prev) => prev.map((f) => (f.id === entry.id ? { ...f, fx } : f)));
+        } catch {
+          setFiles((prev) => prev.map((f) => (f.id === entry.id ? { ...f, fx: { from: meta.currency, to: currency, rate: 0, low: 0, points: 0, identity: false, unavailable: true } } : f)));
+        }
+      }
+    };
+
+    // PDF path: credit-card / bank statements that only exist as PDF.
+    if (file.name.toLowerCase().endsWith('.pdf')) {
+      (async () => {
+        try {
+          const lines = await extractStatementLines(file);
+          const card = detectCardTemplate(lines);
+          const period = detectPeriod(lines);
+          const res = parseCardStatement(lines, period);
+          await finish(
+            { rows: res.rows, skipped: res.skipped, dateIssues: res.rows.filter((r) => r.dateInvalid).length },
+            {
+              bankId: card?.id ?? 'generic-pdf',
+              bankLabel: card?.label ?? t('upload.unknownBank'),
+              detected: !!card,
+              currency: card?.currency ?? currency,
+            }
+          );
+        } catch (err) {
+          setFileErrors((prev) => [...prev, { fileName: file.name, reason: describeExtractionError(err) }]);
+        }
+      })();
+      return;
+    }
+
+    // CSV path.
     Papa.parse(file, {
       header: false,
       skipEmptyLines: true,
       complete: async (results) => {
         const rows = results.data as string[][];
-        if (rows.length < 2) return;
+        if (rows.length < 2) {
+          setFileErrors((prev) => [...prev, { fileName: file.name, reason: 'empty' }]);
+          return;
+        }
 
         const header = rows[0];
         const template = detectTemplate(header);
@@ -112,83 +213,41 @@ export default function UploadPage() {
         const formats = template?.dateFormats ?? ['dd/mm/yyyy', 'yyyy-mm-dd', 'dd mmm yyyy'];
 
         const parsed = parseRows(rows.slice(1), mapping.columns, mapping.amountMode, formats);
-        if (parsed.rows.length === 0) return;
-
-        // Rule-based pass runs immediately; the AI pass is a separate,
-        // explicit action so an import never silently costs quota.
-        const drafted: DraftRow[] = parsed.rows.map((r, i) => {
-          const guess = r.type === 'Income'
-            ? categorizeIncome(categoryNames)
-            : categorizeByRules(r.description, categoryNames);
-          const fromFile = r.category && categoryNames.includes(r.category) ? r.category : null;
-          return {
-            ...r,
-            key: `${file.name}-${i}`,
-            category: fromFile ?? guess?.category ?? 'Other',
-            method: fromFile ? 'rule' : (guess?.method ?? 'fallback'),
-            matchedOn: fromFile ? 'from file' : guess?.matchedOn,
-            include: true,
-          };
-        });
-
-        const statementCurrency = template?.currency ?? currency;
-        const entry: StatementFile = {
-          id: `${file.name}-${Date.now()}`,
-          fileName: file.name,
+        await finish(parsed, {
           bankId: template?.id ?? 'generic',
           bankLabel: template?.label ?? t('upload.unknownBank'),
           detected: !!template,
-          currency: statementCurrency,
-          fx: null,
-          manualRate: '',
-          rows: drafted,
-          skipped: parsed.skipped,
-          dateIssues: parsed.dateIssues,
-        };
-
-        setFiles((prev) => [...prev, entry]);
-        setImportedLabels([]);
-
-        // Default the target month from the statement's own dates.
-        const label = inferMonthLabel(parsed.rows);
-        if (label) {
-          setTargetMonth((cur) => {
-            if (cur) return cur;
-            return months.some((m) => m.label === label) ? label : '__new__';
-          });
-          setNewMonthLabel((cur) => cur || label);
-        }
-
-        // Fetch the conservative (max) rate for this statement's date range.
-        if (statementCurrency !== currency) {
-          const range = dateRange(parsed.rows);
-          const qs = new URLSearchParams({ from: statementCurrency, to: currency });
-          if (range) { qs.set('start', range.start); qs.set('end', range.end); }
-          try {
-            const fx: FxQuote = await fetch(`/api/fx-rate?${qs}`).then((r) => r.json());
-            setFiles((prev) => prev.map((f) => (f.id === entry.id ? { ...f, fx } : f)));
-          } catch {
-            setFiles((prev) => prev.map((f) => (f.id === entry.id ? { ...f, fx: { from: statementCurrency, to: currency, rate: 0, low: 0, points: 0, identity: false, unavailable: true } } : f)));
-          }
-        }
+          currency: template?.currency ?? currency,
+        });
       },
     });
   }, [categoryNames, currency, months, t]);
 
   function handleFiles(list: FileList) {
+    setFileErrors([]);
     Array.from(list).forEach(processFile);
   }
 
-  /** Re-runs bank/currency detection when the user overrides the template. */
+  /**
+   * Applies a manual bank/card override. Only the label and default currency
+   * change — the rows were already parsed by the format that actually matched
+   * the file, so re-parsing here would need the raw file back. Currency is the
+   * part that matters for conversion, and it stays editable separately.
+   */
   function setFileBank(fileId: string, bankId: string) {
     const tpl: BankTemplate | undefined = BANK_TEMPLATES.find((b) => b.id === bankId);
+    const card = CARD_TEMPLATES.find((c) => c.id === bankId);
+    const label = tpl?.label ?? card?.label ?? t('upload.unknownBank');
+    const cur = tpl?.currency ?? card?.currency;
     setFiles((prev) => prev.map((f) => (
-      f.id === fileId
-        ? { ...f, bankId, bankLabel: tpl?.label ?? t('upload.unknownBank'), currency: tpl?.currency ?? f.currency, fx: null, manualRate: '' }
-        : f
+      f.id === fileId ? { ...f, bankId, bankLabel: label } : f
     )));
+    // A different issuer usually implies a different currency; re-run the
+    // rate lookup rather than leaving the file blocked on a manual entry.
+    if (cur) setFileCurrency(fileId, cur);
   }
 
+  /** Sets a file's source currency and refetches its conservative rate. */
   async function setFileCurrency(fileId: string, cur: string) {
     setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, currency: cur, fx: null, manualRate: '' } : f)));
     if (cur === currency) return;
@@ -326,11 +385,22 @@ export default function UploadPage() {
                 {t('upload.chooseFile')}
               </button>
             </div>
-            <input type="file" id="fileInput" accept=".csv" multiple className="hidden"
+            <input type="file" id="fileInput" accept=".csv,.pdf" multiple className="hidden"
               onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }} />
             <p className="text-[11px] text-gray-400 mt-3">
-              {t('upload.supportedBanks')}: {BANK_TEMPLATES.map((b) => b.label).join(' · ')} — {t('upload.otherBanksNote')}
+              {t('upload.supportedBanks')}: {[...CARD_TEMPLATES, ...BANK_TEMPLATES].map((b) => b.label).join(' · ')} — {t('upload.otherBanksNote')}
             </p>
+
+            {fileErrors.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {fileErrors.map((e, i) => (
+                  <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-[12px] text-red-700">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span><strong>{e.fileName}</strong> — {t(`upload.error.${e.reason}`)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardBody>
         </Card>
 
@@ -360,7 +430,12 @@ export default function UploadPage() {
                     <select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 outline-none"
                       value={f.bankId} onChange={(e) => setFileBank(f.id, e.target.value)}>
                       <option value="generic">{t('upload.unknownBank')}</option>
-                      {BANK_TEMPLATES.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                      <optgroup label={t('upload.creditCards')}>
+                        {CARD_TEMPLATES.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                      </optgroup>
+                      <optgroup label={t('upload.bankAccounts')}>
+                        {BANK_TEMPLATES.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                      </optgroup>
                     </select>
                   </div>
                   <div>

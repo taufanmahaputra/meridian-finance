@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Real bank/credit-card statements used for parser development.
+# These contain personal financial data and must never be committed.
+/statements/
+*.pdf

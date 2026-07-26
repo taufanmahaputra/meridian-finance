@@ -434,6 +434,11 @@ const en: Dict = {
   'upload.excludeRow': 'Exclude this row',
   'upload.typeExpense': 'Expense',
   'upload.typeIncome': 'Income',
+  'upload.creditCards': 'Credit cards (PDF)',
+  'upload.bankAccounts': 'Bank accounts (CSV)',
+  'upload.error.scanned': 'this PDF has no text layer — it looks like a scan or photo, so nothing can be extracted. Ask your bank for a digital (text) PDF.',
+  'upload.error.unreadable': "this PDF couldn't be read. It may be password-protected or corrupted.",
+  'upload.error.empty': 'no transactions found in this file. Check the format, or pick the bank manually below.',
 
   'settings.title': 'Settings',
   'settings.tab.general': 'General',
@@ -897,6 +902,11 @@ const id: Dict = {
   'upload.excludeRow': 'Kecualikan baris ini',
   'upload.typeExpense': 'Pengeluaran',
   'upload.typeIncome': 'Pemasukan',
+  'upload.creditCards': 'Kartu kredit (PDF)',
+  'upload.bankAccounts': 'Rekening bank (CSV)',
+  'upload.error.scanned': 'PDF ini tidak punya lapisan teks — sepertinya hasil scan atau foto, jadi tidak ada yang bisa diambil. Minta PDF digital (teks) ke bankmu.',
+  'upload.error.unreadable': 'PDF ini tidak bisa dibaca. Mungkin terproteksi password atau rusak.',
+  'upload.error.empty': 'tidak ada transaksi ditemukan di file ini. Cek formatnya, atau pilih banknya manual di bawah.',
 
   'settings.title': 'Pengaturan',
   'settings.tab.general': 'Umum',
