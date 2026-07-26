@@ -275,6 +275,14 @@ export interface ParsedRow {
   category?: string;
   /** Set when the date couldn't be parsed, so the UI can flag the row. */
   dateInvalid?: boolean;
+  /**
+   * A parser's hint that this row probably shouldn't be tracked as real
+   * income/spending (e.g. a credit-card payment moving money from a bank
+   * account you already track, not new income) — the row still appears in
+   * the draft, just unchecked by default so it's a deliberate re-include
+   * rather than a silent double-count.
+   */
+  suggestedExclude?: boolean;
 }
 
 export interface ParseResult {

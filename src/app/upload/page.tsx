@@ -125,7 +125,7 @@ export default function UploadPage() {
           category: fromFile ?? guess?.category ?? 'Other',
           method: fromFile ? 'rule' : (guess?.method ?? 'fallback'),
           matchedOn: fromFile ? 'from file' : guess?.matchedOn,
-          include: true,
+          include: !r.suggestedExclude,
         };
       });
 
@@ -591,6 +591,14 @@ export default function UploadPage() {
                           >
                             {row.method === 'rule' ? t('upload.methodRule') : row.method === 'ai' ? t('upload.methodAi') : t('upload.methodManual')}
                           </span>
+                          {row.suggestedExclude && (
+                            <span
+                              className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500"
+                              title={t('upload.suggestedExclude')}
+                            >
+                              {t('upload.suggestedExclude')}
+                            </span>
+                          )}
                         </div>
                       </div>
 
