@@ -106,6 +106,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           type: row.type as 'Income' | 'Expense',
           month: row.month,
           notes: row.notes,
+          // Nullable until the v6 migration backfill runs (and for rows
+          // created by older app versions) — leave undefined rather than
+          // coercing null to 0, so the UI can tell "no FX data" apart from
+          // a genuine zero.
+          originalAmount: row.original_amount != null ? Number(row.original_amount) : undefined,
+          originalCurrency: row.original_currency ?? undefined,
+          fxRate: row.fx_rate != null ? Number(row.fx_rate) : undefined,
+          sourceBank: row.source_bank ?? undefined,
         })));
       }
 
@@ -203,6 +211,13 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           type: t.type,
           month: t.month,
           notes: t.notes || null,
+          // Default to a 1:1 same-currency import when the caller didn't do
+          // any FX work (e.g. a plain single-currency CSV), so these columns
+          // are never null for newly-created rows.
+          original_amount: t.originalAmount ?? t.amount,
+          original_currency: t.originalCurrency ?? currency,
+          fx_rate: t.fxRate ?? 1,
+          source_bank: t.sourceBank ?? null,
         })));
       }
       computed.id = monthId;
@@ -214,7 +229,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     });
     setTransactions((prev) => [...prev.filter((t) => t.month !== label), ...taggedTxs]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, months, catBudgets, income]);
+  }, [user, months, catBudgets, income, currency]);
 
   const addCategory = useCallback(async (name: string, budget: number, color?: string) => {
     const finalColor = color || nextChartColor(categories.map((c) => c.color));

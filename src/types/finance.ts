@@ -17,11 +17,20 @@ export interface Transaction {
   id?: string;
   date: string;
   description: string;
+  /** Always in the user's display currency (profiles.currency). */
   amount: number;
   category: string;
   type: 'Income' | 'Expense';
   month?: string;
   notes?: string;
+  /** Amount as printed on the source statement, before FX conversion. */
+  originalAmount?: number;
+  /** ISO code of originalAmount's currency, e.g. 'SGD'. */
+  originalCurrency?: string;
+  /** originalCurrency -> display currency rate applied at import. */
+  fxRate?: number;
+  /** Statement template this row was parsed from, e.g. 'bca'. */
+  sourceBank?: string;
 }
 
 export interface CategoryBudget {
