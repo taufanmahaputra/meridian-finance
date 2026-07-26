@@ -22,7 +22,8 @@ interface FinanceState {
   user: User | null;
   loading: boolean;
   addMonth: (month: MonthData) => void;
-  importMonth: (label: string, partial: boolean, txs: Transaction[]) => Promise<void>;
+  importMonth: (label: string, partial: boolean, txs: Transaction[], mode?: 'replace' | 'append') => Promise<void>;
+  deleteMonth: (label: string) => Promise<void>;
   addCategory: (name: string, budget: number, color?: string) => Promise<void>;
   updateCategory: (id: string, updates: Partial<Pick<Category, 'name' | 'budget' | 'color'>>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
@@ -172,22 +173,31 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const importMonth = useCallback(async (label: string, partial: boolean, txs: Transaction[]) => {
+  const importMonth = useCallback(async (label: string, partial: boolean, txs: Transaction[], mode: 'replace' | 'append' = 'replace') => {
+    const existing = months.find((m) => m.label === label);
+    // Append keeps whatever is already saved for this month and layers the
+    // new rows on top — for when a second statement for the same month
+    // (a different bank, or a later e-statement cut-off date) arrives
+    // separately. Replace still exists for correcting an import mistake.
+    const priorTxs = mode === 'append' ? transactions.filter((t) => t.month === label) : [];
+    const combined = [...priorTxs, ...txs];
+
     const cats: Record<string, number> = {};
     let incomeTotal = 0;
-    txs.forEach((t) => {
+    combined.forEach((t) => {
       if (t.type === 'Expense') cats[t.category] = (cats[t.category] || 0) + t.amount;
       else incomeTotal += t.amount;
     });
     const expenses = Object.values(cats).reduce((a, b) => a + b, 0);
-    const existing = months.find((m) => m.label === label);
     const monthIncome = incomeTotal > 0 ? incomeTotal : (existing?.income ?? income);
     const computed = computeDerived({ label, partial, income: monthIncome, expenses, cats }, catBudgets);
 
     const taggedTxs = txs.map((t) => ({ ...t, month: label }));
 
     if (user) {
-      await supabase.from('transactions').delete().eq('user_id', user.id).eq('month', label);
+      if (mode === 'replace') {
+        await supabase.from('transactions').delete().eq('user_id', user.id).eq('month', label);
+      }
 
       let monthId = existing?.id;
       if (monthId) {
@@ -227,9 +237,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       const without = prev.filter((m) => m.label !== label);
       return [...without, computed].sort((a, b) => a.label.localeCompare(b.label));
     });
-    setTransactions((prev) => [...prev.filter((t) => t.month !== label), ...taggedTxs]);
+    setTransactions((prev) => [...prev.filter((t) => t.month !== label), ...combined]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, months, catBudgets, income, currency]);
+  }, [user, months, transactions, catBudgets, income, currency]);
+
+  /** Deletes every transaction (and the aggregate row) for one month — the
+   *  reset control for a bad import, without touching any other month. */
+  const deleteMonth = useCallback(async (label: string) => {
+    const existing = months.find((m) => m.label === label);
+    if (user) {
+      await supabase.from('transactions').delete().eq('user_id', user.id).eq('month', label);
+      if (existing?.id) await supabase.from('months').delete().eq('id', existing.id);
+    }
+    setMonths((prev) => prev.filter((m) => m.label !== label));
+    setTransactions((prev) => prev.filter((t) => t.month !== label));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, months]);
 
   const addCategory = useCallback(async (name: string, budget: number, color?: string) => {
     const finalColor = color || nextChartColor(categories.map((c) => c.color));
@@ -314,7 +337,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   return (
     <FinanceContext.Provider value={{
       months, transactions, categories, catBudgets, catColors, monthlyBudget, income, currency, language, t, user, loading,
-      addMonth, importMonth, addCategory, updateCategory, deleteCategory, updateIncome, updateCurrency, updateLanguage, clearAllData, signOut,
+      addMonth, importMonth, deleteMonth, addCategory, updateCategory, deleteCategory, updateIncome, updateCurrency, updateLanguage, clearAllData, signOut,
     }}>
       {children}
     </FinanceContext.Provider>

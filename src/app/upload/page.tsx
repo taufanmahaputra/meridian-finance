@@ -50,7 +50,7 @@ interface StatementFile {
 }
 
 export default function UploadPage() {
-  const { months, categories, importMonth, currency, t } = useFinance();
+  const { months, categories, importMonth, deleteMonth, currency, t } = useFinance();
 
   const [files, setFiles] = useState<StatementFile[]>([]);
   const [fileErrors, setFileErrors] = useState<{ fileName: string; reason: 'scanned' | 'unreadable' | 'empty' }[]>([]);
@@ -62,6 +62,10 @@ export default function UploadPage() {
   const [targetMonth, setTargetMonth] = useState('');
   const [newMonthLabel, setNewMonthLabel] = useState('');
   const [partial, setPartial] = useState(false);
+  const [importMode, setImportMode] = useState<'append' | 'replace'>('append');
+  const [resetMonthLabel, setResetMonthLabel] = useState('');
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const categoryNames = useMemo(() => categories.map((c) => c.name), [categories]);
   const catColorByName = useMemo(
@@ -329,10 +333,19 @@ export default function UploadPage() {
       }
     }
 
-    await importMonth(effectiveLabel, partial, txs);
+    await importMonth(effectiveLabel, partial, txs, existingMonth ? importMode : 'append');
     setImporting(false);
     setImportedLabels([effectiveLabel]);
     setFiles([]);
+  }
+
+  async function resetMonth() {
+    if (!resetMonthLabel) return;
+    setResetting(true);
+    await deleteMonth(resetMonthLabel);
+    setResetting(false);
+    setResetConfirmOpen(false);
+    setResetMonthLabel('');
   }
 
   const blockedFiles = files.filter((f) => rateFor(f) == null);
@@ -498,7 +511,7 @@ export default function UploadPage() {
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('upload.targetMonth')}</label>
                   <select className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 outline-none"
-                    value={targetMonth} onChange={(e) => setTargetMonth(e.target.value)}>
+                    value={targetMonth} onChange={(e) => { setTargetMonth(e.target.value); setImportMode('append'); }}>
                     <option value="">{t('upload.selectMonth')}</option>
                     {sortedMonths.map((m) => <option key={m.label} value={m.label}>{m.label}</option>)}
                     <option value="__new__">{t('upload.newMonth')}</option>
@@ -519,9 +532,82 @@ export default function UploadPage() {
               </label>
 
               {existingMonth && (
-                <div className="flex items-start gap-2 px-3.5 py-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setImportMode('append')}
+                      className={cn(
+                        'flex-1 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors text-left',
+                        importMode === 'append' ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                      )}>
+                      {t('upload.modeAppend')}
+                    </button>
+                    <button type="button" onClick={() => setImportMode('replace')}
+                      className={cn(
+                        'flex-1 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors text-left',
+                        importMode === 'replace' ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                      )}>
+                      {t('upload.modeReplace')}
+                    </button>
+                  </div>
+                  <div className={cn(
+                    'flex items-start gap-2 px-3.5 py-3 rounded-lg text-xs',
+                    importMode === 'replace' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-indigo-50 border border-indigo-200 text-indigo-700'
+                  )}>
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>
+                      {importMode === 'append'
+                        ? t('upload.appendNote', { month: existingMonth.label, amount: fmt(existingMonth.expenses || 0, currency) })
+                        : t('upload.replaceNote', { month: existingMonth.label, amount: fmt(existingMonth.expenses || 0, currency) })}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        )}
+
+        {/* Reset a month — independent of the current draft, for undoing a bad import */}
+        {months.length > 0 && (
+          <Card className="mb-4">
+            <CardHeader>{t('upload.resetSection')}</CardHeader>
+            <CardBody>
+              <p className="text-xs text-gray-400 mb-3">{t('upload.resetSectionNote')}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <select className="w-full sm:w-56 px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 outline-none"
+                  value={resetMonthLabel} onChange={(e) => { setResetMonthLabel(e.target.value); setResetConfirmOpen(false); }}>
+                  <option value="">{t('upload.selectMonth')}</option>
+                  {sortedMonths.map((m) => <option key={m.label} value={m.label}>{m.label}</option>)}
+                </select>
+                {resetMonthLabel && !resetConfirmOpen && (
+                  <button onClick={() => setResetConfirmOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-red-200 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-50 transition-colors self-start">
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {t('upload.resetMonth', { month: resetMonthLabel })}
+                  </button>
+                )}
+              </div>
+
+              {resetMonthLabel && resetConfirmOpen && (
+                <div className="mt-3 flex items-start gap-2 px-3.5 py-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <span>{t('upload.replaceNote', { month: existingMonth.label, amount: fmt(existingMonth.expenses || 0, currency) })}</span>
+                  <div className="flex-1">
+                    <p className="mb-2">
+                      {t('upload.resetMonthConfirm', {
+                        month: resetMonthLabel,
+                        amount: fmt(months.find((m) => m.label === resetMonthLabel)?.expenses || 0, currency),
+                      })}
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={resetMonth} disabled={resetting}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors disabled:opacity-40">
+                        {resetting ? t('upload.resetting') : t('upload.resetMonthConfirmBtn')}
+                      </button>
+                      <button onClick={() => setResetConfirmOpen(false)}
+                        className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                        {t('common.cancel')}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardBody>
@@ -541,7 +627,11 @@ export default function UploadPage() {
                 <button onClick={confirmImport} disabled={!canImport}
                   className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                   <Save className="w-3.5 h-3.5" />
-                  {importing ? t('upload.importing') : existingMonth ? t('upload.replaceAndImport') : t('upload.confirmAndImport')}
+                  {importing
+                    ? t('upload.importing')
+                    : existingMonth
+                      ? (importMode === 'replace' ? t('upload.replaceAndImport') : t('upload.appendAndImport'))
+                      : t('upload.confirmAndImport')}
                 </button>
               </div>
             }>
