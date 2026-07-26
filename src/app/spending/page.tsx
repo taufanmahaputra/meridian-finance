@@ -81,7 +81,7 @@ export default function SpendingPage() {
                 {months.map((mo, i) => <option key={i} value={i}>{mo.label}</option>)}
               </select>
             }>{t('spending.categorySplit')}</CardHeader>
-            <CardBody><CategoryPieChart month={pieMonth} catColors={catColors} currency={currency} /></CardBody>
+            <CardBody><CategoryPieChart cats={pieMonth.cats} catColors={catColors} currency={currency} /></CardBody>
           </Card>
 
           <Card>

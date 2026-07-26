@@ -102,7 +102,7 @@ export default function DashboardPage() {
                 {months.map((m, i) => <option key={i} value={i}>{m.label}</option>)}
               </select>
             }>{t('dashboard.spendingByCategory')}</CardHeader>
-            <CardBody><CategoryPieChart month={months[pieIdx] || months[months.length - 1]} catColors={catColors} currency={currency} /></CardBody>
+            <CardBody><CategoryPieChart cats={(months[pieIdx] || months[months.length - 1]).cats} catColors={catColors} currency={currency} /></CardBody>
           </Card>
         </div>
 

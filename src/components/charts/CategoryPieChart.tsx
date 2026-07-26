@@ -1,11 +1,10 @@
 'use client';
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import type { MonthData } from '@/types/finance';
 import { fmt } from '@/lib/calculations';
 
-export function CategoryPieChart({ month, catColors, currency }: { month: MonthData; catColors: Record<string, string>; currency: string }) {
-  const data = Object.entries(month.cats)
+export function CategoryPieChart({ cats, catColors, currency }: { cats: Record<string, number>; catColors: Record<string, string>; currency: string }) {
+  const data = Object.entries(cats)
     .filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1])
     .map(([name, value]) => ({ name, value }));

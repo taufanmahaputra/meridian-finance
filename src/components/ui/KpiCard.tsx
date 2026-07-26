@@ -3,6 +3,16 @@
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 
+// Optional stronger tint for a card — used where a KPI benefits from being
+// visually called out at a glance (e.g. a filtered summary) instead of
+// relying on the plain white card + colored icon alone.
+const TONE_STYLES = {
+  neutral: 'bg-white border-gray-200',
+  emerald: 'bg-emerald-50/70 border-emerald-200',
+  red: 'bg-red-50/70 border-red-200',
+  indigo: 'bg-indigo-50/70 border-indigo-200',
+} as const;
+
 interface KpiCardProps {
   icon: React.ReactNode;
   iconBg: string;
@@ -13,14 +23,15 @@ interface KpiCardProps {
   trendSuffix?: string;
   sparkline?: number[];
   sparklineGood?: boolean;
+  tone?: keyof typeof TONE_STYLES;
 }
 
-export function KpiCard({ icon, iconBg, label, value, trendText, trendClassName, trendSuffix = ' vs prev', sparkline, sparklineGood = true }: KpiCardProps) {
+export function KpiCard({ icon, iconBg, label, value, trendText, trendClassName, trendSuffix = ' vs prev', sparkline, sparklineGood = true, tone = 'neutral' }: KpiCardProps) {
   const sparkColor = sparklineGood ? '#059669' : '#ef4444';
   const sparkData = sparkline?.map((v, i) => ({ i, v }));
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 card-shadow hover:shadow-md transition-shadow">
+    <div className={cn('rounded-xl p-5 card-shadow hover:shadow-md transition-shadow border', TONE_STYLES[tone])}>
       <div className="flex items-start justify-between mb-3">
         <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center text-base', iconBg)}>
           {icon}
