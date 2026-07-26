@@ -31,6 +31,9 @@ export interface Transaction {
   fxRate?: number;
   /** Statement template this row was parsed from, e.g. 'bca'. */
   sourceBank?: string;
+  /** True only for the placeholder rows buildTransactionLedger synthesizes
+   *  for a month with no itemized data — never set on a real saved row. */
+  synthetic?: boolean;
 }
 
 export interface CategoryBudget {

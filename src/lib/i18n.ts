@@ -300,6 +300,9 @@ const en: Dict = {
   'transactions.page': 'page',
   'transactions.empty.title': 'No transactions yet',
   'transactions.empty.desc': 'Upload a statement to see your transaction history here.',
+  'transactions.aggregateOnlyNote': 'This month only has a category total, not itemized transactions.',
+  'transactions.aggregateOnlyBanner': '{months} only have category totals (added manually, not from a statement) — no individual transactions to list.',
+  'transactions.aggregateOnlyCta': 'Upload a statement →',
 
   'spending.title': 'Spending',
   'spending.empty.title': 'No spending data yet',
@@ -799,6 +802,9 @@ const id: Dict = {
   'transactions.page': 'halaman',
   'transactions.empty.title': 'Belum ada transaksi',
   'transactions.empty.desc': 'Unggah mutasi rekening untuk melihat riwayat transaksi di sini.',
+  'transactions.aggregateOnlyNote': 'Bulan ini hanya punya total kategori, bukan transaksi satuan.',
+  'transactions.aggregateOnlyBanner': '{months} hanya punya total kategori (ditambahkan manual, bukan dari mutasi) — tidak ada transaksi satuan untuk ditampilkan.',
+  'transactions.aggregateOnlyCta': 'Unggah mutasi rekening →',
 
   'spending.title': 'Pengeluaran',
   'spending.empty.title': 'Belum ada data pengeluaran',

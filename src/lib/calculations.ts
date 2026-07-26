@@ -286,9 +286,9 @@ export function buildTransactionLedger(months: MonthData[], transactions: Transa
   months.forEach((m) => {
     if (monthsWithItemized.has(m.label)) return;
     Object.entries(m.cats).forEach(([cat, total]) => {
-      if (total > 0) fromMonths.push({ date: m.label, description: `${cat} — ${m.label} total`, amount: total, category: cat, type: 'Expense' });
+      if (total > 0) fromMonths.push({ date: m.label, description: `${cat} — ${m.label} total`, amount: total, category: cat, type: 'Expense', synthetic: true });
     });
-    fromMonths.push({ date: m.label, description: `Salary — ${m.label}`, amount: m.income, category: 'Income', type: 'Income' });
+    fromMonths.push({ date: m.label, description: `Salary — ${m.label}`, amount: m.income, category: 'Income', type: 'Income', synthetic: true });
   });
   return [...fromMonths, ...transactions];
 }

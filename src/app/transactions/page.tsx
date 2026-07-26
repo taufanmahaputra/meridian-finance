@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import {
-  Search, Download, X, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, ChevronRight,
+  Search, Download, X, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, ChevronRight, Info,
 } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
@@ -104,8 +105,19 @@ export default function TransactionsPage() {
     });
   }, [allTx, search, typeFilter, catFilter, monthFilter, dateFrom, dateTo]);
 
+  // The summary section (KPIs, breakdown, cash-flow) treats `filtered` as
+  // truthful money totals — same ground truth as every other page in the
+  // app — including months that only ever got a manual aggregate total.
+  // The ledger below is different: it's the "raw data" view, so it must
+  // only ever show genuinely itemized rows, never the synthetic per-category
+  // placeholders `buildTransactionLedger` fills in for a month with no
+  // itemized import. Showing those as if they were real transactions is
+  // exactly what read as "wrong" — a fake row per category, not real data.
+  const ledgerRows = useMemo(() => filtered.filter((tx) => !tx.synthetic), [filtered]);
+  const hasAggregateOnlyMatches = filtered.length > 0 && ledgerRows.length === 0;
+
   const sorted = useMemo(() => {
-    const arr = [...filtered];
+    const arr = [...ledgerRows];
     arr.sort((a, b) => {
       let cmp = 0;
       if (sortField === 'date') cmp = dateSortKey(a).localeCompare(dateSortKey(b));
@@ -116,7 +128,7 @@ export default function TransactionsPage() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return arr;
-  }, [filtered, sortField, sortDir]);
+  }, [ledgerRows, sortField, sortDir]);
 
   const groups = useMemo<Group[] | null>(() => {
     if (groupBy === 'none') return null;
@@ -174,6 +186,14 @@ export default function TransactionsPage() {
   const netSpark = sparkWindow.map((m) => m.income - m.expenses);
 
   const hasActiveFilters = !!(search || typeFilter || catFilter || monthFilter || dateFrom || dateTo);
+
+  // Months that only ever got a manual aggregate total (via "+ Add Month",
+  // or an import that never landed itemized rows) — surfaced up front so
+  // the ledger's row count doesn't look mysteriously short.
+  const monthsWithoutItemized = useMemo(
+    () => months.filter((m) => !transactions.some((tx) => tx.month === m.label)).map((m) => m.label),
+    [months, transactions]
+  );
 
   function resetFilters() {
     setSearch(''); setTypeFilter(''); setCatFilter(''); setMonthFilter(''); setDateFrom(''); setDateTo(''); setPage(0);
@@ -261,6 +281,21 @@ export default function TransactionsPage() {
     );
   }
 
+  function renderEmptyLedgerCell() {
+    if (hasAggregateOnlyMatches) {
+      return (
+        <div className="flex flex-col items-center gap-2 text-center text-sm text-gray-400">
+          <Info className="w-4 h-4 text-gray-300" />
+          <span className="max-w-sm">{t('transactions.aggregateOnlyNote')}</span>
+          <Link href="/upload" className="text-indigo-600 text-xs font-semibold hover:underline">
+            {t('transactions.aggregateOnlyCta')}
+          </Link>
+        </div>
+      );
+    }
+    return <div className="text-center text-sm text-gray-400">{t('transactions.noneFound')}</div>;
+  }
+
   if (months.length === 0) {
     return (
       <>
@@ -293,7 +328,7 @@ export default function TransactionsPage() {
             label={t('transactions.kpi.net')} value={fmt(net, currency)}
             sparkline={netSpark} sparklineGood={net >= 0} />
           <KpiCard icon={<span>🧾</span>} iconBg="bg-indigo-100" tone="indigo"
-            label={t('transactions.kpi.count')} value={String(filtered.length)} />
+            label={t('transactions.kpi.count')} value={String(ledgerRows.length)} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-4 mb-4">
@@ -347,6 +382,16 @@ export default function TransactionsPage() {
           <h3 className="text-sm font-semibold">{t('transactions.ledger')}</h3>
           <p className="text-xs text-gray-400">{t('transactions.subtitle')}</p>
         </div>
+
+        {monthsWithoutItemized.length > 0 && (
+          <div className="flex items-start gap-2.5 px-4 py-3 mb-4 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-700">
+            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>
+              {t('transactions.aggregateOnlyBanner', { months: monthsWithoutItemized.join(', ') })}{' '}
+              <Link href="/upload" className="font-semibold hover:underline">{t('transactions.aggregateOnlyCta')}</Link>
+            </span>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2 items-center bg-white border border-gray-200 rounded-xl p-3 mb-4">
           <div className="relative flex-1 min-w-[200px]">
@@ -425,14 +470,14 @@ export default function TransactionsPage() {
                 <tbody className="divide-y divide-gray-100">
                   {groups ? (
                     groups.length === 0 ? (
-                      <tr><td colSpan={5} className="px-5 py-10 text-center text-gray-400 text-sm">{t('transactions.noneFound')}</td></tr>
+                      <tr><td colSpan={5} className="px-5 py-10">{renderEmptyLedgerCell()}</td></tr>
                     ) : groups.flatMap((g) => [
                       <GroupHeaderRow key={`h-${g.key}`} group={g} />,
                       ...(collapsed.has(g.key) ? [] : g.rows.map((tx, i) => <TxRow key={tx.id ?? `${g.key}-${i}`} tx={tx} k={tx.id ?? `${g.key}-${i}`} />)),
                     ])
                   ) : (
                     pageSlice.length === 0 ? (
-                      <tr><td colSpan={5} className="px-5 py-10 text-center text-gray-400 text-sm">{t('transactions.noneFound')}</td></tr>
+                      <tr><td colSpan={5} className="px-5 py-10">{renderEmptyLedgerCell()}</td></tr>
                     ) : pageSlice.map((tx, i) => <TxRow key={tx.id ?? i} tx={tx} k={tx.id ?? i} />)
                   )}
                 </tbody>
