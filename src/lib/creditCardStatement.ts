@@ -212,6 +212,14 @@ function stripLeadingDates(text: string): { dateToken: string; rest: string } | 
 
 const CR_DR_WORDS = new Set(['CR', 'DR', 'DB', 'CREDIT', 'DEBIT']);
 
+// ISO codes that appear in a "Jumlah Mata Uang" (foreign-currency) column,
+// e.g. UOB prints "OWNDAYS ... SGD 997.00 13,520,506" — the code marks the
+// number right after it as a FOREIGN amount, not the real IDR billed one.
+const CURRENCY_CODES = new Set([
+  'IDR', 'SGD', 'USD', 'EUR', 'MYR', 'AUD', 'GBP', 'JPY', 'HKD', 'THB',
+  'CNY', 'KRW', 'TWD', 'PHP', 'VND', 'CHF', 'NZD', 'CAD',
+]);
+
 /** A token is "numeric" only with balanced parens (or none) — this is what
  *  keeps "(SGD 6,09 X 14.291,30)"'s rate from ever being mistaken for the
  *  real amount: split on whitespace, "14.291,30)" has an UNmatched paren and
@@ -223,22 +231,39 @@ function isNumericToken(t: string): boolean {
 interface ExtractedAmount {
   amount: string;
   marker: string;
-  /** Text before the trailing numeric run — i.e. the real description. */
+  /** Text before the amount token — i.e. the real description. */
   description: string;
 }
 
 /**
  * Finds the transaction amount in a block's full text: strips an optional
  * trailing CR/DR word, then walks backward over whitespace-separated numeric
- * tokens, and returns the FIRST (leftmost) one of that trailing run.
+ * tokens to find the trailing run, and picks the amount from within it.
  *
- * "Leftmost of the run" is what makes this correct for every shape seen in
- * real statements: a lone amount, an amount followed by UOB's extra
- * remaining-balance column, or an amount that happens to follow a rejected
- * (unbalanced-paren) rate token.
+ * Two real layouts share this trailing run and need OPPOSITE picks:
+ *   - UOB installment: "...6,028,737 18,086,207" — the real amount LEADS,
+ *     followed by an extra remaining-balance column. Leftmost is correct.
+ *   - UOB foreign-currency: "...SGD 997.00 13,520,506" — the real amount
+ *     TRAILS a foreign amount that's paired with a currency code. The
+ *     number right after that code is correct, not the leftmost.
+ * A currency-code token immediately before the run disambiguates the two:
+ * present → skip past the foreign amount; absent → leftmost, as before.
  */
+// UOB sometimes prints the CR/DR marker glued directly onto the number with
+// no space ("13,000,000CR") instead of as its own token — split it off so
+// the rest of the function sees it the same as a space-separated marker.
+// Without this, the whole token fails isNumericToken (letters mixed with
+// digits) and the row is silently skipped rather than misread.
+function splitGluedMarker(tokens: string[]): string[] {
+  if (tokens.length === 0) return tokens;
+  const last = tokens[tokens.length - 1];
+  const m = last.match(/^(-?\(?[\d.,]+\)?)(CR|DR|DB|CREDIT|DEBIT)$/i);
+  if (!m) return tokens;
+  return [...tokens.slice(0, -1), m[1], m[2].toUpperCase()];
+}
+
 function extractTrailingAmount(text: string): ExtractedAmount | null {
-  const tokens = text.trim().split(/\s+/).filter(Boolean);
+  const tokens = splitGluedMarker(text.trim().split(/\s+/).filter(Boolean));
   if (tokens.length === 0) return null;
 
   let end = tokens.length;
@@ -253,10 +278,14 @@ function extractTrailingAmount(text: string): ExtractedAmount | null {
   while (start > 0 && isNumericToken(tokens[start - 1])) start--;
   if (start === end) return null; // no numeric tokens at all
 
+  const precedingToken = start > 0 ? tokens[start - 1].toUpperCase() : '';
+  const hasCurrencyPrefix = CURRENCY_CODES.has(precedingToken) && (end - start) >= 2;
+  const amountIndex = hasCurrencyPrefix ? start + 1 : start;
+
   return {
-    amount: tokens[start],
+    amount: tokens[amountIndex],
     marker,
-    description: tokens.slice(0, start).join(' ').trim(),
+    description: tokens.slice(0, amountIndex).join(' ').trim(),
   };
 }
 
@@ -276,6 +305,13 @@ interface Block {
  * This is what correctly reassembles a transaction whose merchant name,
  * foreign-currency note, and Rupiah amount print on separate visual lines.
  */
+// A bare 4-digit year directly after a single "DD MMM" date is a summary
+// row (e.g. "19 MAR 2026 8,725,135 ... 06 APR 2026" — Tanggal Pencetakan
+// paired inline with due-date and credit-limit figures), never a real
+// transaction: every genuine row pairs two DD-MMM dates (transaction +
+// posting), not a date immediately followed by a year.
+const DATE_WITH_YEAR_NOISE = /^\d{1,2}\s+[A-Za-z]{3,9}\.?\s+20\d{2}\b/;
+
 function groupIntoBlocks(lines: StatementLine[]): { blocks: Block[]; noiseFiltered: number } {
   const blocks: Block[] = [];
   let current: Block | null = null;
@@ -285,7 +321,7 @@ function groupIntoBlocks(lines: StatementLine[]): { blocks: Block[]; noiseFilter
     const text = line.text.trim();
     if (text.length === 0) continue;
 
-    if (isNoise(text.toLowerCase())) {
+    if (isNoise(text.toLowerCase()) || DATE_WITH_YEAR_NOISE.test(text)) {
       if (current) { blocks.push(current); current = null; }
       noiseFiltered++;
       continue;
