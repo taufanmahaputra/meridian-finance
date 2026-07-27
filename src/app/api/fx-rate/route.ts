@@ -36,29 +36,49 @@ export async function GET(request: Request) {
   const startTs = start ? Math.floor(new Date(`${start}T00:00:00Z`).getTime() / 1000) - DAY : null;
   const endTs = end ? Math.floor(new Date(`${end}T00:00:00Z`).getTime() / 1000) + DAY : null;
 
-  const symbol = encodeURIComponent(fxSymbol(from, to));
-  const url = startTs && endTs && endTs > startTs
-    ? `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${startTs}&period2=${endTs}&interval=1d`
-    // No usable range given — fall back to the last 3 months so we still
-    // return a defensible max rather than a single spot price.
-    : `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=3mo&interval=1d`;
+  function chartUrl(pairSymbol: string): string {
+    const symbol = encodeURIComponent(pairSymbol);
+    return startTs && endTs && endTs > startTs
+      ? `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${startTs}&period2=${endTs}&interval=1d`
+      // No usable range given — fall back to the last 3 months so we still
+      // return a defensible max rather than a single spot price.
+      : `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=3mo&interval=1d`;
+  }
 
-  try {
-    const res = await fetch(url, {
+  async function fetchCloses(pairSymbol: string): Promise<(number | null)[] | null> {
+    const res = await fetch(chartUrl(pairSymbol), {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       next: { revalidate: 3600 },
     });
-    if (!res.ok) throw new Error(`upstream ${res.status}`);
-
+    if (!res.ok) return null;
     const data = await res.json();
-    const result = data?.chart?.result?.[0];
-    const closes: (number | null)[] = result?.indicators?.quote?.[0]?.close ?? [];
-    const picked = pickConservativeRate(closes);
+    const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+    return Array.isArray(closes) && closes.length > 0 ? closes : null;
+  }
 
-    if (!picked) throw new Error('no rate data in range');
+  try {
+    const closes = await fetchCloses(fxSymbol(from, to));
+    const picked = closes && pickConservativeRate(closes);
+    if (picked) {
+      const quote: FxQuote = { from, to, ...picked, identity: false };
+      return NextResponse.json(quote);
+    }
 
-    const quote: FxQuote = { from, to, ...picked, identity: false };
-    return NextResponse.json(quote);
+    // Yahoo's free FX data is often one-directional: it has a full history
+    // for the "major" quoting direction (e.g. SGD→IDR) but returns nothing
+    // for the reverse (IDR→SGD) even though the pair itself exists. Rather
+    // than give up, try the reverse symbol and invert: the conservative
+    // (highest) forward rate is 1 / (lowest reverse rate) over the window.
+    const reverseCloses = await fetchCloses(fxSymbol(to, from));
+    const validReverse = (reverseCloses ?? []).filter((c): c is number => typeof c === 'number' && isFinite(c) && c > 0);
+    if (validReverse.length > 0) {
+      const rate = 1 / Math.min(...validReverse);
+      const low = 1 / Math.max(...validReverse);
+      const quote: FxQuote = { from, to, rate, low, points: validReverse.length, identity: false };
+      return NextResponse.json(quote);
+    }
+
+    throw new Error('no rate data in range, either direction');
   } catch {
     // Surface the failure honestly instead of inventing a rate — the upload
     // UI asks the user to type one in when this happens.
