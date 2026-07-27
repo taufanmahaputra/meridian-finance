@@ -7,37 +7,15 @@ import {
 } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
-import { Card, CardHeader, CardBody } from '@/components/ui/Card';
-import { KpiCard } from '@/components/ui/KpiCard';
+import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { CategoryIcon } from '@/components/CategoryIcon';
-import { CategoryPieChart } from '@/components/charts/CategoryPieChart';
-import { CashFlowChart } from '@/components/charts/CashFlowChart';
 import { EmptyState } from '@/components/EmptyState';
-import { fmt, fmtPct, buildTransactionLedger } from '@/lib/calculations';
+import { fmt, buildTransactionLedger, isIsoDate, effectiveTxMonth } from '@/lib/calculations';
 import type { Transaction } from '@/types/finance';
 import { cn } from '@/lib/utils';
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const PAGE_SIZES = [25, 50, 100];
-const SPARK_WINDOW = 6;
-
-function isIsoDate(d: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}/.test(d);
-}
-
-/** Best-effort month label for a transaction — the assigned import month
- *  when known, else derived from an ISO date, else the raw date string
- *  (which is itself already a month label for the no-itemized-data
- *  fallback rows buildTransactionLedger synthesizes). */
-function effectiveMonth(tx: Transaction): string {
-  if (tx.month) return tx.month;
-  if (isIsoDate(tx.date)) {
-    const [y, m] = tx.date.split('-');
-    return `${MONTH_NAMES[Number(m) - 1]} ${y}`;
-  }
-  return tx.date;
-}
 
 /** Sorts real ISO dates chronologically; non-ISO fallback rows (month
  *  aggregates with no day-level date) sort before any dated row. */
@@ -66,6 +44,9 @@ function pageWindow(current: number, total: number, size = 5): number[] {
   return Array.from({ length: end - start }, (_, i) => start + i);
 }
 
+// This page is deliberately just the raw ledger — search, filter, group,
+// sort, export. Totals, breakdowns, and trend charts live on Spending now;
+// this is the "look at the actual rows" tool, not an analysis surface.
 export default function TransactionsPage() {
   const { months, transactions, catColors, currency, t } = useFinance();
 
@@ -86,7 +67,7 @@ export default function TransactionsPage() {
   const categoryNames = useMemo(() => [...new Set(allTx.map((tx) => tx.category))].sort(), [allTx]);
   const monthLabels = useMemo(() => {
     const order = months.map((m) => m.label);
-    return [...new Set(allTx.map(effectiveMonth))].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    return [...new Set(allTx.map(effectiveTxMonth))].sort((a, b) => order.indexOf(a) - order.indexOf(b));
   }, [allTx, months]);
 
   const filtered = useMemo(() => {
@@ -95,7 +76,7 @@ export default function TransactionsPage() {
       if (q && !tx.description.toLowerCase().includes(q) && !tx.category.toLowerCase().includes(q)) return false;
       if (typeFilter && tx.type !== typeFilter) return false;
       if (catFilter && tx.category !== catFilter) return false;
-      if (monthFilter && effectiveMonth(tx) !== monthFilter) return false;
+      if (monthFilter && effectiveTxMonth(tx) !== monthFilter) return false;
       if (dateFrom || dateTo) {
         if (!isIsoDate(tx.date)) return false;
         if (dateFrom && tx.date < dateFrom) return false;
@@ -105,14 +86,11 @@ export default function TransactionsPage() {
     });
   }, [allTx, search, typeFilter, catFilter, monthFilter, dateFrom, dateTo]);
 
-  // The summary section (KPIs, breakdown, cash-flow) treats `filtered` as
-  // truthful money totals — same ground truth as every other page in the
-  // app — including months that only ever got a manual aggregate total.
-  // The ledger below is different: it's the "raw data" view, so it must
-  // only ever show genuinely itemized rows, never the synthetic per-category
-  // placeholders `buildTransactionLedger` fills in for a month with no
-  // itemized import. Showing those as if they were real transactions is
-  // exactly what read as "wrong" — a fake row per category, not real data.
+  // This ledger is the "raw data" view, so it must only ever show genuinely
+  // itemized rows — never the synthetic per-category placeholders
+  // buildTransactionLedger fills in for a month with no itemized import.
+  // Showing those as if they were real transactions is what read as
+  // "wrong" — a fake row per category, not real data.
   const ledgerRows = useMemo(() => filtered.filter((tx) => !tx.synthetic), [filtered]);
   const hasAggregateOnlyMatches = filtered.length > 0 && ledgerRows.length === 0;
 
@@ -134,7 +112,7 @@ export default function TransactionsPage() {
     if (groupBy === 'none') return null;
     const map = new Map<string, Group>();
     sorted.forEach((tx) => {
-      const key = groupBy === 'category' ? tx.category : groupBy === 'month' ? effectiveMonth(tx) : tx.type;
+      const key = groupBy === 'category' ? tx.category : groupBy === 'month' ? effectiveTxMonth(tx) : tx.type;
       const g = map.get(key) ?? { key, rows: [], income: 0, expense: 0 };
       g.rows.push(tx);
       if (tx.type === 'Income') g.income += tx.amount; else g.expense += tx.amount;
@@ -153,37 +131,6 @@ export default function TransactionsPage() {
   const totalPages = Math.max(1, Math.ceil(sorted.length / perPage));
   const pageSafe = Math.min(page, totalPages - 1);
   const pageSlice = groups ? [] : sorted.slice(pageSafe * perPage, (pageSafe + 1) * perPage);
-
-  const totalIn = useMemo(() => filtered.filter((tx) => tx.type === 'Income').reduce((s, tx) => s + tx.amount, 0), [filtered]);
-  const totalOut = useMemo(() => filtered.filter((tx) => tx.type === 'Expense').reduce((s, tx) => s + tx.amount, 0), [filtered]);
-  const net = totalIn - totalOut;
-
-  const filteredCats = useMemo(() => {
-    const cats: Record<string, number> = {};
-    filtered.forEach((tx) => { if (tx.type === 'Expense') cats[tx.category] = (cats[tx.category] || 0) + tx.amount; });
-    return cats;
-  }, [filtered]);
-  const catTotal = Object.values(filteredCats).reduce((a, b) => a + b, 0);
-  const rankedCats = useMemo(() => Object.entries(filteredCats).sort((a, b) => b[1] - a[1]), [filteredCats]);
-
-  const cashFlowData = useMemo(() => {
-    const map = new Map<string, { income: number; expense: number }>();
-    filtered.forEach((tx) => {
-      const key = effectiveMonth(tx);
-      const entry = map.get(key) ?? { income: 0, expense: 0 };
-      if (tx.type === 'Income') entry.income += tx.amount; else entry.expense += tx.amount;
-      map.set(key, entry);
-    });
-    const order = months.map((m) => m.label);
-    return [...map.entries()]
-      .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
-      .map(([name, v]) => ({ name, ...v }));
-  }, [filtered, months]);
-
-  const sparkWindow = months.slice(-SPARK_WINDOW);
-  const inSpark = sparkWindow.map((m) => m.income);
-  const outSpark = sparkWindow.map((m) => m.expenses);
-  const netSpark = sparkWindow.map((m) => m.income - m.expenses);
 
   const hasActiveFilters = !!(search || typeFilter || catFilter || monthFilter || dateFrom || dateTo);
 
@@ -237,7 +184,7 @@ export default function TransactionsPage() {
   function TxRow({ tx, k }: { tx: Transaction; k: string | number }) {
     return (
       <tr key={k} className="hover:bg-gray-50/60 transition-colors">
-        <td className="px-4 py-2.5 text-[12px] text-gray-500 whitespace-nowrap">{isIsoDate(tx.date) ? tx.date : effectiveMonth(tx)}</td>
+        <td className="px-4 py-2.5 text-[12px] text-gray-500 whitespace-nowrap">{isIsoDate(tx.date) ? tx.date : effectiveTxMonth(tx)}</td>
         <td className="px-4 py-2.5 text-[13px] font-medium text-gray-900 max-w-[360px] truncate">{tx.description}</td>
         <td className="px-4 py-2.5">
           <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600 whitespace-nowrap">
@@ -311,73 +258,6 @@ export default function TransactionsPage() {
     <>
       <Topbar title={t('transactions.title')} />
       <div className="p-4 sm:p-7 max-w-[1440px]">
-        {/* ── Summary ─────────────────────────────────────────────── */}
-        <div className="mb-4">
-          <h3 className="text-sm font-semibold">{t('transactions.summary')}</h3>
-          <p className="text-xs text-gray-400">{t('transactions.summarySubtitle')}</p>
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KpiCard icon={<span>📥</span>} iconBg="bg-emerald-100" tone="emerald"
-            label={t('transactions.kpi.totalIn')} value={fmt(totalIn, currency)}
-            sparkline={inSpark} sparklineGood />
-          <KpiCard icon={<span>📤</span>} iconBg="bg-red-100" tone="red"
-            label={t('transactions.kpi.totalOut')} value={fmt(totalOut, currency)}
-            sparkline={outSpark} sparklineGood={false} />
-          <KpiCard icon={<span>⚖️</span>} iconBg={net >= 0 ? 'bg-emerald-100' : 'bg-red-100'} tone={net >= 0 ? 'emerald' : 'red'}
-            label={t('transactions.kpi.net')} value={fmt(net, currency)}
-            sparkline={netSpark} sparklineGood={net >= 0} />
-          <KpiCard icon={<span>🧾</span>} iconBg="bg-indigo-100" tone="indigo"
-            label={t('transactions.kpi.count')} value={String(ledgerRows.length)} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-4 mb-4">
-          <Card>
-            <CardHeader>{t('transactions.categoryBreakdown')}</CardHeader>
-            <CardBody>
-              {rankedCats.length === 0 ? (
-                <div className="py-14 text-center text-gray-400 text-sm">{t('transactions.noSpending')}</div>
-              ) : (
-                <CategoryPieChart cats={filteredCats} catColors={catColors} currency={currency} />
-              )}
-            </CardBody>
-          </Card>
-          <Card>
-            <CardHeader>{t('transactions.topCategories')}</CardHeader>
-            <CardBody compact>
-              {rankedCats.length === 0 ? (
-                <div className="py-14 text-center text-gray-400 text-sm">{t('transactions.noSpending')}</div>
-              ) : (
-                <div className="divide-y divide-gray-100 max-h-[280px] overflow-y-auto">
-                  {rankedCats.map(([name, amount]) => {
-                    const pct = catTotal > 0 ? (amount / catTotal) * 100 : 0;
-                    const color = catColors[name] || '#6b7280';
-                    return (
-                      <div key={name} className="flex items-center gap-3 pl-3 pr-4 py-3" style={{ borderLeft: `3px solid ${color}` }}>
-                        <CategoryIcon name={name} color={color} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-semibold text-gray-900 truncate">{name}</div>
-                          <div className="text-[11px] text-gray-400">{t('transactions.ofSpend')}</div>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: `${color}1f`, color }}>
-                          {fmtPct(pct)}
-                        </span>
-                        <span className="text-[14px] font-bold font-mono text-gray-900 flex-shrink-0 w-[92px] text-right">{fmt(amount, currency)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        </div>
-
-        <Card className="mb-6">
-          <CardHeader>{t('transactions.cashFlowTrend')}</CardHeader>
-          <CardBody><CashFlowChart data={cashFlowData} currency={currency} /></CardBody>
-        </Card>
-
-        {/* ── Detail ──────────────────────────────────────────────── */}
         <div className="mb-4">
           <h3 className="text-sm font-semibold">{t('transactions.ledger')}</h3>
           <p className="text-xs text-gray-400">{t('transactions.subtitle')}</p>

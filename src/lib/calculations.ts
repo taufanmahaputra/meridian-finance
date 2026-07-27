@@ -293,6 +293,26 @@ export function buildTransactionLedger(months: MonthData[], transactions: Transa
   return [...fromMonths, ...transactions];
 }
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export function isIsoDate(d: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}/.test(d);
+}
+
+/** Best-effort month label for a transaction — the assigned import month
+ *  when known, else derived from an ISO date, else the raw date string
+ *  (which is itself already a month label for the no-itemized-data
+ *  fallback rows buildTransactionLedger synthesizes). Shared by any page
+ *  that groups or filters transactions by month. */
+export function effectiveTxMonth(tx: Transaction): string {
+  if (tx.month) return tx.month;
+  if (isIsoDate(tx.date)) {
+    const [y, m] = tx.date.split('-');
+    return `${MONTH_NAMES[Number(m) - 1]} ${y}`;
+  }
+  return tx.date;
+}
+
 export function generateForecast(months: MonthData[], periodsAhead = 6) {
   const expenses = months.map((m) => m.expenses);
   const n = expenses.length;
