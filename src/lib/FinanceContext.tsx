@@ -42,6 +42,27 @@ interface FinanceState {
 
 const FinanceContext = createContext<FinanceState | null>(null);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapTransactionRow(row: any): Transaction {
+  return {
+    id: row.id,
+    date: row.date,
+    description: row.description,
+    amount: Number(row.amount),
+    category: row.category,
+    type: row.type as 'Income' | 'Expense',
+    month: row.month,
+    notes: row.notes,
+    // Nullable until the v6 migration backfill runs (and for rows created
+    // by older app versions) — leave undefined rather than coercing null
+    // to 0, so the UI can tell "no FX data" apart from a genuine zero.
+    originalAmount: row.original_amount != null ? Number(row.original_amount) : undefined,
+    originalCurrency: row.original_currency ?? undefined,
+    fxRate: row.fx_rate != null ? Number(row.fx_rate) : undefined,
+    sourceBank: row.source_bank ?? undefined,
+  };
+}
+
 export function FinanceProvider({ children }: { children: ReactNode }) {
   const [months, setMonths] = useState<MonthData[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -106,24 +127,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       setMonths(sortMonths(loaded));
 
       if (txRes.data) {
-        setTransactions(txRes.data.map((row) => ({
-          id: row.id,
-          date: row.date,
-          description: row.description,
-          amount: Number(row.amount),
-          category: row.category,
-          type: row.type as 'Income' | 'Expense',
-          month: row.month,
-          notes: row.notes,
-          // Nullable until the v6 migration backfill runs (and for rows
-          // created by older app versions) — leave undefined rather than
-          // coercing null to 0, so the UI can tell "no FX data" apart from
-          // a genuine zero.
-          originalAmount: row.original_amount != null ? Number(row.original_amount) : undefined,
-          originalCurrency: row.original_currency ?? undefined,
-          fxRate: row.fx_rate != null ? Number(row.fx_rate) : undefined,
-          sourceBank: row.source_bank ?? undefined,
-        })));
+        setTransactions(txRes.data.map(mapTransactionRow));
       }
 
       setIncome(Number(profileRes.data?.monthly_income) || 0);
@@ -198,7 +202,18 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     // new rows on top — for when a second statement for the same month
     // (a different bank, or a later e-statement cut-off date) arrives
     // separately. Replace still exists for correcting an import mistake.
-    const priorTxs = mode === 'append' ? transactions.filter((t) => t.month === label) : [];
+    //
+    // Read prior rows from the DATABASE, not the `transactions` closure —
+    // two uploads for the same month done back-to-back (e.g. BCA then UOB,
+    // each its own "Confirm & Save") can race the client-side state update
+    // between them, silently computing the month's totals from whichever
+    // batch happened to be in React state at that instant instead of
+    // everything actually saved. The DB is always current.
+    let priorTxs: Transaction[] = [];
+    if (mode === 'append' && user) {
+      const { data } = await supabase.from('transactions').select('*').eq('user_id', user.id).eq('month', label);
+      priorTxs = (data ?? []).map(mapTransactionRow);
+    }
     const combined = [...priorTxs, ...txs];
 
     const cats: Record<string, number> = {};
@@ -258,7 +273,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     });
     setTransactions((prev) => [...prev.filter((t) => t.month !== label), ...combined]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, months, transactions, catBudgets, income, currency]);
+  }, [user, months, catBudgets, income, currency]);
 
   /** Deletes every transaction (and the aggregate row) for one month — the
    *  reset control for a bad import, without touching any other month. */
