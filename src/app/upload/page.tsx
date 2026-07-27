@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import Papa from 'papaparse';
 import {
-  Upload, AlertTriangle, X, Sparkles, Landmark, Trash2, CircleAlert, Save,
+  Upload, AlertTriangle, X, Sparkles, Landmark, Trash2, CircleAlert, Save, History, FileText, ChevronDown,
 } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
@@ -50,7 +50,8 @@ interface StatementFile {
 }
 
 export default function UploadPage() {
-  const { months, categories, importMonth, deleteMonth, currency, t } = useFinance();
+  const { months, categories, importMonth, deleteMonth, logUpload, uploadHistory, clearUploadHistory, currency, language, t } = useFinance();
+  const [historyOpen, setHistoryOpen] = useState(true);
 
   const [files, setFiles] = useState<StatementFile[]>([]);
   const [fileErrors, setFileErrors] = useState<{ fileName: string; reason: 'scanned' | 'unreadable' | 'empty' }[]>([]);
@@ -314,9 +315,11 @@ export default function UploadPage() {
     setImporting(true);
 
     const txs: Transaction[] = [];
+    const fileRowCounts = new Map<string, number>();
     for (const f of files) {
       const rate = rateFor(f);
       if (rate == null) continue; // no usable rate — skip rather than guess
+      let count = 0;
       for (const r of f.rows) {
         if (!r.include) continue;
         txs.push({
@@ -330,10 +333,25 @@ export default function UploadPage() {
           fxRate: rate,
           sourceBank: f.bankId,
         });
+        count++;
       }
+      fileRowCounts.set(f.id, count);
     }
 
-    await importMonth(effectiveLabel, partial, txs, existingMonth ? importMode : 'append');
+    const mode = existingMonth ? importMode : 'append';
+    await importMonth(effectiveLabel, partial, txs, mode);
+
+    // Log what got uploaded (filename + month, never the file itself) so
+    // it can be recalled later — one entry per file actually included.
+    await Promise.all(files.filter((f) => (fileRowCounts.get(f.id) ?? 0) > 0).map((f) => logUpload({
+      fileName: f.fileName,
+      bankLabel: f.bankLabel,
+      month: effectiveLabel,
+      mode,
+      rowCount: fileRowCounts.get(f.id) ?? 0,
+      currency: f.currency,
+    })));
+
     setImporting(false);
     setImportedLabels([effectiveLabel]);
     setFiles([]);
@@ -359,6 +377,56 @@ export default function UploadPage() {
           <h3 className="text-sm font-semibold">{t('upload.heading')}</h3>
           <p className="text-xs text-gray-400">{t('upload.multiSubtitle')}</p>
         </div>
+
+        {/* Recent uploads — filename + which month it landed in, never the
+            file itself, so "did I already do April?" has a real answer. */}
+        {!hasDraft && uploadHistory.length > 0 && (
+          <Card className="mb-5">
+            <CardHeader action={
+              <div className="flex items-center gap-3">
+                <button onClick={clearUploadHistory} className="text-[11px] font-semibold text-gray-400 hover:text-gray-600 transition-colors">
+                  {t('upload.history.clear')}
+                </button>
+                <button onClick={() => setHistoryOpen((v) => !v)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <ChevronDown className={cn('w-4 h-4 transition-transform', historyOpen && 'rotate-180')} />
+                </button>
+              </div>
+            }>
+              <span className="inline-flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5 text-gray-400" />
+                {t('upload.history.title')}
+              </span>
+            </CardHeader>
+            {historyOpen && (
+              <CardBody compact>
+                <div className="divide-y divide-gray-100 max-h-[360px] overflow-y-auto">
+                  {uploadHistory.map((entry) => (
+                    <div key={entry.id} className="flex items-center gap-3 px-5 py-3">
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-400">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-gray-900 truncate">{entry.fileName}</div>
+                        <div className="text-[11px] text-gray-400 flex items-center gap-1.5 flex-wrap">
+                          {entry.bankLabel && <span>{entry.bankLabel}</span>}
+                          {entry.bankLabel && <span>·</span>}
+                          <span>{new Date(entry.createdAt).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-semibold text-gray-500 flex-shrink-0">
+                        {t('upload.history.rows', { n: entry.rowCount })}
+                      </span>
+                      <Badge variant="info" className="flex-shrink-0">{entry.month}</Badge>
+                      {entry.mode === 'replace' && (
+                        <Badge variant="warning" className="flex-shrink-0">{t('upload.history.replaced')}</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            )}
+          </Card>
+        )}
 
         {/* Unsaved-draft warning — the draft is in-memory only, so make the
             consequence of navigating away impossible to miss. */}

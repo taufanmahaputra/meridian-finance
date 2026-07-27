@@ -36,6 +36,19 @@ export interface Transaction {
   synthetic?: boolean;
 }
 
+/** A logged import event — filename + where it landed, never the file
+ *  contents — so a user can recall what they already uploaded. */
+export interface UploadHistoryEntry {
+  id?: string;
+  fileName: string;
+  bankLabel: string | null;
+  month: string;
+  mode: 'append' | 'replace';
+  rowCount: number;
+  currency: string | null;
+  createdAt: string;
+}
+
 export interface CategoryBudget {
   name: string;
   budget: number;

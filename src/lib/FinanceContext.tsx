@@ -1,12 +1,14 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
-import type { MonthData, Transaction, Category } from '@/types/finance';
+import type { MonthData, Transaction, Category, UploadHistoryEntry } from '@/types/finance';
 import { computeDerived } from '@/lib/calculations';
 import { createClient } from '@/lib/supabase';
 import { DEFAULT_CATEGORIES, DEFAULT_CURRENCY, nextChartColor } from '@/lib/constants';
 import { t as translate, DEFAULT_LANGUAGE, type Language } from '@/lib/i18n';
 import type { User } from '@supabase/supabase-js';
+
+const UPLOAD_HISTORY_LIMIT = 20;
 
 interface FinanceState {
   months: MonthData[];
@@ -21,9 +23,12 @@ interface FinanceState {
   t: (key: string, vars?: Record<string, string | number>) => string;
   user: User | null;
   loading: boolean;
+  uploadHistory: UploadHistoryEntry[];
   addMonth: (month: MonthData) => void;
   importMonth: (label: string, partial: boolean, txs: Transaction[], mode?: 'replace' | 'append') => Promise<void>;
   deleteMonth: (label: string) => Promise<void>;
+  logUpload: (entry: Omit<UploadHistoryEntry, 'id' | 'createdAt'>) => Promise<void>;
+  clearUploadHistory: () => Promise<void>;
   addCategory: (name: string, budget: number, color?: string) => Promise<void>;
   updateCategory: (id: string, updates: Partial<Pick<Category, 'name' | 'budget' | 'color'>>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
@@ -40,6 +45,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [months, setMonths] = useState<MonthData[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [uploadHistory, setUploadHistory] = useState<UploadHistoryEntry[]>([]);
   const [income, setIncome] = useState(0);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
@@ -66,11 +72,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   async function loadData(userId: string) {
     setLoading(true);
     try {
-      const [monthsRes, txRes, catRes, profileRes] = await Promise.all([
+      const [monthsRes, txRes, catRes, profileRes, uploadHistoryRes] = await Promise.all([
         supabase.from('months').select('*').eq('user_id', userId).order('created_at'),
         supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
         supabase.from('categories').select('*').eq('user_id', userId).order('created_at'),
         supabase.from('profiles').select('monthly_income, currency, language').eq('id', userId).single(),
+        supabase.from('upload_history').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(UPLOAD_HISTORY_LIMIT),
       ]);
 
       let cats = catRes.data ?? [];
@@ -121,6 +128,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       setIncome(Number(profileRes.data?.monthly_income) || 0);
       setCurrency(profileRes.data?.currency || DEFAULT_CURRENCY);
       setLanguage((profileRes.data?.language as Language) || DEFAULT_LANGUAGE);
+
+      setUploadHistory((uploadHistoryRes.data ?? []).map((row) => ({
+        id: row.id,
+        fileName: row.file_name,
+        bankLabel: row.bank_label,
+        month: row.month,
+        mode: row.mode as 'append' | 'replace',
+        rowCount: row.row_count,
+        currency: row.currency,
+        createdAt: row.created_at,
+      })));
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
@@ -254,6 +272,42 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, months]);
 
+  /** Logs an import event (filename + month it landed in) — never the file
+   *  itself — so "what did I already upload" is answerable later. */
+  const logUpload = useCallback(async (entry: Omit<UploadHistoryEntry, 'id' | 'createdAt'>) => {
+    if (!user) return;
+    const { data } = await supabase.from('upload_history').insert({
+      user_id: user.id,
+      file_name: entry.fileName,
+      bank_label: entry.bankLabel,
+      month: entry.month,
+      mode: entry.mode,
+      row_count: entry.rowCount,
+      currency: entry.currency,
+    }).select().single();
+    if (data) {
+      setUploadHistory((prev) => [{
+        id: data.id,
+        fileName: data.file_name,
+        bankLabel: data.bank_label,
+        month: data.month,
+        mode: data.mode,
+        rowCount: data.row_count,
+        currency: data.currency,
+        createdAt: data.created_at,
+      }, ...prev].slice(0, UPLOAD_HISTORY_LIMIT));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const clearUploadHistory = useCallback(async () => {
+    setUploadHistory([]);
+    if (user) {
+      await supabase.from('upload_history').delete().eq('user_id', user.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const addCategory = useCallback(async (name: string, budget: number, color?: string) => {
     const finalColor = color || nextChartColor(categories.map((c) => c.color));
     if (user) {
@@ -337,7 +391,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   return (
     <FinanceContext.Provider value={{
       months, transactions, categories, catBudgets, catColors, monthlyBudget, income, currency, language, t, user, loading,
-      addMonth, importMonth, deleteMonth, addCategory, updateCategory, deleteCategory, updateIncome, updateCurrency, updateLanguage, clearAllData, signOut,
+      uploadHistory,
+      addMonth, importMonth, deleteMonth, logUpload, clearUploadHistory,
+      addCategory, updateCategory, deleteCategory, updateIncome, updateCurrency, updateLanguage, clearAllData, signOut,
     }}>
       {children}
     </FinanceContext.Provider>
