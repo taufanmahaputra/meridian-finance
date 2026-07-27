@@ -278,17 +278,26 @@ export function suggestCategoryBudgets(months: MonthData[], categories: Category
 }
 
 // Builds the full transaction ledger: itemized transactions where a
-// statement was imported, plus synthesized entries (one per category total,
-// one for salary) for months that only ever had aggregate totals entered.
+// statement was imported, plus synthesized entries for months that need
+// them. Category totals only synthesize when a month has NO itemized data
+// at all (real rows supersede the aggregate). Salary is different: it
+// synthesizes for ANY month with no real Income-type transaction, because
+// statements (a credit card, a savings account CSV) almost never contain
+// the salary deposit itself — without this, a month that's only ever had
+// expense statements imported would show zero income everywhere.
 export function buildTransactionLedger(months: MonthData[], transactions: Transaction[]): Transaction[] {
   const monthsWithItemized = new Set(transactions.map((tx) => tx.month).filter(Boolean));
+  const monthsWithIncomeTx = new Set(transactions.filter((tx) => tx.type === 'Income' && tx.month).map((tx) => tx.month));
   const fromMonths: Transaction[] = [];
   months.forEach((m) => {
-    if (monthsWithItemized.has(m.label)) return;
-    Object.entries(m.cats).forEach(([cat, total]) => {
-      if (total > 0) fromMonths.push({ date: m.label, description: `${cat} — ${m.label} total`, amount: total, category: cat, type: 'Expense', synthetic: true });
-    });
-    fromMonths.push({ date: m.label, description: `Salary — ${m.label}`, amount: m.income, category: 'Income', type: 'Income', synthetic: true });
+    if (!monthsWithItemized.has(m.label)) {
+      Object.entries(m.cats).forEach(([cat, total]) => {
+        if (total > 0) fromMonths.push({ date: m.label, description: `${cat} — ${m.label} total`, amount: total, category: cat, type: 'Expense', synthetic: true });
+      });
+    }
+    if (!monthsWithIncomeTx.has(m.label) && m.income > 0) {
+      fromMonths.push({ date: m.label, description: `Salary — ${m.label}`, amount: m.income, category: 'Income', type: 'Income', synthetic: true });
+    }
   });
   return [...fromMonths, ...transactions];
 }

@@ -7,7 +7,7 @@ import {
   LayoutGrid, DollarSign, CheckCircle, Activity,
   Lightbulb, TrendingUp, Upload, X, CalendarDays, Settings,
   Signal, Compass, ChevronDown, Check, ListChecks, ChevronLeft, ChevronRight,
-  Languages, HelpCircle, LogOut, PieChart, Tag, type LucideIcon,
+  Languages, HelpCircle, LogOut, PieChart, Tag, Wallet, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/lib/SidebarContext';
@@ -63,6 +63,7 @@ const olahAturSections: NavSection[] = [
       // Categories management is a setup task (add/edit/budget/color), not a
       // daily-use view — grouped here rather than in Overview.
       { href: '/categories', labelKey: 'nav.categories', icon: Tag },
+      { href: '/income', labelKey: 'nav.income', icon: Wallet },
     ],
   },
 ];

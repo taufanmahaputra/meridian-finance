@@ -29,6 +29,7 @@ interface FinanceState {
   deleteMonth: (label: string) => Promise<void>;
   logUpload: (entry: Omit<UploadHistoryEntry, 'id' | 'createdAt'>) => Promise<void>;
   clearUploadHistory: () => Promise<void>;
+  updateMonthIncome: (label: string, income: number) => Promise<void>;
   addCategory: (name: string, budget: number, color?: string) => Promise<void>;
   updateCategory: (id: string, updates: Partial<Pick<Category, 'name' | 'budget' | 'color'>>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
@@ -308,6 +309,23 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  /** Overrides one month's income (independent of the global default in
+   *  Settings) — recomputes savings/savingsRate locally and persists just
+   *  the income column, leaving expenses/cats untouched. */
+  const updateMonthIncome = useCallback(async (label: string, newIncome: number) => {
+    const existing = months.find((m) => m.label === label);
+    if (!existing) return;
+    const computed = computeDerived(
+      { id: existing.id, label, partial: existing.partial, income: newIncome, expenses: existing.expenses, cats: existing.cats },
+      catBudgets
+    );
+    setMonths((prev) => prev.map((m) => (m.label === label ? computed : m)));
+    if (user && existing.id) {
+      await supabase.from('months').update({ income: newIncome }).eq('id', existing.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, months, catBudgets]);
+
   const addCategory = useCallback(async (name: string, budget: number, color?: string) => {
     const finalColor = color || nextChartColor(categories.map((c) => c.color));
     if (user) {
@@ -392,7 +410,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     <FinanceContext.Provider value={{
       months, transactions, categories, catBudgets, catColors, monthlyBudget, income, currency, language, t, user, loading,
       uploadHistory,
-      addMonth, importMonth, deleteMonth, logUpload, clearUploadHistory,
+      addMonth, importMonth, deleteMonth, logUpload, clearUploadHistory, updateMonthIncome,
       addCategory, updateCategory, deleteCategory, updateIncome, updateCurrency, updateLanguage, clearAllData, signOut,
     }}>
       {children}
