@@ -322,6 +322,32 @@ export function effectiveTxMonth(tx: Transaction): string {
   return tx.date;
 }
 
+const MONTH_INDEX = Object.fromEntries(MONTH_NAMES.map((m, i) => [m.toLowerCase(), i]));
+
+/** "Mar 2026" -> "2026-03" — sorts chronologically as a plain string,
+ *  unlike the label itself (alphabetically "Apr" < "Feb" < "Jan" < "Mar").
+ *  Falls back to the raw label for anything that doesn't parse, so an
+ *  unexpected format degrades to a stable (if not calendar-correct) sort
+ *  rather than throwing. */
+export function monthSortKey(label: string): string {
+  const parts = label.trim().split(/\s+/);
+  if (parts.length === 2) {
+    const idx = MONTH_INDEX[parts[0].toLowerCase()];
+    if (idx !== undefined && /^\d{4}$/.test(parts[1])) {
+      return `${parts[1]}-${String(idx + 1).padStart(2, '0')}`;
+    }
+  }
+  return label;
+}
+
+/** Months in real Jan-Dec chronological order — the DB only guarantees
+ *  created_at (upload) order, which is wrong whenever statements are
+ *  uploaded out of sequence. Every page that lists or charts months
+ *  should sort through this rather than trusting array order. */
+export function sortMonths(months: MonthData[]): MonthData[] {
+  return [...months].sort((a, b) => monthSortKey(a.label).localeCompare(monthSortKey(b.label)));
+}
+
 export function generateForecast(months: MonthData[], periodsAhead = 6) {
   const expenses = months.map((m) => m.expenses);
   const n = expenses.length;

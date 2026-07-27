@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { MonthData, Transaction, Category, UploadHistoryEntry } from '@/types/finance';
-import { computeDerived } from '@/lib/calculations';
+import { computeDerived, sortMonths } from '@/lib/calculations';
 import { createClient } from '@/lib/supabase';
 import { DEFAULT_CATEGORIES, DEFAULT_CURRENCY, nextChartColor } from '@/lib/constants';
 import { t as translate, DEFAULT_LANGUAGE, type Language } from '@/lib/i18n';
@@ -103,7 +103,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           cats: row.cats as Record<string, number>,
         }, catBudgetMap)
       );
-      setMonths(loaded);
+      setMonths(sortMonths(loaded));
 
       if (txRes.data) {
         setTransactions(txRes.data.map((row) => ({
@@ -174,7 +174,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addMonth = useCallback(async (month: MonthData) => {
-    setMonths((prev) => [...prev, month]);
+    setMonths((prev) => sortMonths([...prev, month]));
 
     if (user) {
       const { data } = await supabase.from('months').insert({
@@ -254,7 +254,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
     setMonths((prev) => {
       const without = prev.filter((m) => m.label !== label);
-      return [...without, computed].sort((a, b) => a.label.localeCompare(b.label));
+      return sortMonths([...without, computed]);
     });
     setTransactions((prev) => [...prev.filter((t) => t.month !== label), ...combined]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
