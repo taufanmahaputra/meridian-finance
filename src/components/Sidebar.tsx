@@ -268,6 +268,11 @@ export function Sidebar() {
               </div>
               {section.items.map((item) => {
                 const active = item.match ? item.match(pathname) : pathname === item.href;
+                const childActiveList = item.children?.map((child) => (child.match ? child.match(pathname) : pathname === child.href)) ?? [];
+                // Sub-items only make sense while their parent section is
+                // the one you're in — expanded when Spending (or one of
+                // its children) is active, collapsed away otherwise.
+                const expandChildren = active || childActiveList.some(Boolean);
                 return (
                   <div key={item.href}>
                     <Link
@@ -287,26 +292,30 @@ export function Sidebar() {
                       <span className={cn(collapsed && 'md:hidden')}>{t(item.labelKey)}</span>
                     </Link>
                     {item.children && !collapsed && (
-                      <div className="ml-[13px] pl-3.5 border-l border-gray-200 mb-0.5">
-                        {item.children.map((child) => {
-                          const childActive = child.match ? child.match(pathname) : pathname === child.href;
-                          return (
-                            <Link
-                              key={child.href}
-                              href={child.href}
-                              onClick={close}
-                              className={cn(
-                                'flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors mb-0.5',
-                                childActive
-                                  ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-                              )}
-                            >
-                              <child.icon className="w-[15px] h-[15px] flex-shrink-0" />
-                              <span>{t(child.labelKey)}</span>
-                            </Link>
-                          );
-                        })}
+                      <div
+                        className="grid transition-[grid-template-rows] duration-200 ease-out"
+                        style={{ gridTemplateRows: expandChildren ? '1fr' : '0fr' }}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="ml-[13px] pl-3.5 border-l border-gray-200 mb-0.5">
+                            {item.children.map((child, i) => (
+                              <Link
+                                key={child.href}
+                                href={child.href}
+                                onClick={close}
+                                className={cn(
+                                  'flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors mb-0.5',
+                                  childActiveList[i]
+                                    ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                                )}
+                              >
+                                <child.icon className="w-[15px] h-[15px] flex-shrink-0" />
+                                <span>{t(child.labelKey)}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
