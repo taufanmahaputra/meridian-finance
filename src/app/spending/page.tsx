@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Search, X } from 'lucide-react';
+import { Search, X, CreditCard, Landmark } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -17,6 +17,7 @@ import { EmptyState } from '@/components/EmptyState';
 import {
   fmt, fmtPct, getTrendData, buildTransactionLedger, isIsoDate, effectiveTxMonth,
 } from '@/lib/calculations';
+import { resolveSourceBank } from '@/lib/sourceBanks';
 
 const SPARK_WINDOW = 6;
 
@@ -280,15 +281,29 @@ export default function SpendingPage() {
                 <div className="py-10 text-center text-gray-400 text-sm">{t('spending.drilldown.prompt')}</div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {filteredTx.map((tx, i) => (
-                    <div key={tx.id ?? i} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors">
-                      <div className="min-w-0">
-                        <div className="text-[13px] font-medium text-gray-900 truncate">{tx.description}</div>
-                        <div className="text-[11px] text-gray-400">{tx.date}</div>
+                  {filteredTx.map((tx, i) => {
+                    const resolved = resolveSourceBank(tx.sourceBank);
+                    return (
+                      <div key={tx.id ?? i} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors">
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-medium text-gray-900 truncate">{tx.description}</div>
+                          <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                            <span>{tx.date}</span>
+                            {resolved && (
+                              <>
+                                <span>·</span>
+                                <span className="inline-flex items-center gap-1">
+                                  {resolved.accountType === 'credit_card' ? <CreditCard className="w-3 h-3" /> : <Landmark className="w-3 h-3" />}
+                                  {resolved.label}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[13px] font-semibold font-mono flex-shrink-0">{fmt(tx.amount, currency, 2)}</span>
                       </div>
-                      <span className="text-[13px] font-semibold font-mono flex-shrink-0">{fmt(tx.amount, currency, 2)}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {filteredTx.length === 0 && (
                     <div className="py-10 text-center text-gray-400 text-sm">{t('spending.drilldown.noTransactions')}</div>
                   )}

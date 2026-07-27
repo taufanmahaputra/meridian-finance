@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Search, Download, X, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, ChevronRight, Info,
+  Search, Download, X, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, ChevronRight, Info, CreditCard, Landmark,
 } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { EmptyState } from '@/components/EmptyState';
 import { fmt, buildTransactionLedger, isIsoDate, effectiveTxMonth } from '@/lib/calculations';
+import { resolveSourceBank } from '@/lib/sourceBanks';
 import type { Transaction } from '@/types/finance';
 import { cn } from '@/lib/utils';
 
@@ -23,9 +24,23 @@ function dateSortKey(tx: Transaction): string {
   return isIsoDate(tx.date) ? tx.date : '0000-00-00';
 }
 
-type SortField = 'date' | 'description' | 'category' | 'type' | 'amount';
+type SortField = 'date' | 'description' | 'category' | 'type' | 'amount' | 'source';
 type SortDir = 'asc' | 'desc';
-type GroupBy = 'none' | 'category' | 'month' | 'type';
+type GroupBy = 'none' | 'category' | 'month' | 'type' | 'source';
+
+/** Small icon + label for a transaction's bank/account, so it's clear at a
+ *  glance whether a row came from a credit card or a savings account. */
+function SourceBadge({ sourceBank }: { sourceBank?: string }) {
+  const resolved = resolveSourceBank(sourceBank);
+  if (!resolved) return <span className="text-gray-300">—</span>;
+  const Icon = resolved.accountType === 'credit_card' ? CreditCard : Landmark;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600 whitespace-nowrap">
+      <Icon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+      {resolved.label}
+    </span>
+  );
+}
 
 interface Group {
   key: string;
@@ -54,6 +69,7 @@ export default function TransactionsPage() {
   const [typeFilter, setTypeFilter] = useState<'' | 'Income' | 'Expense'>('');
   const [catFilter, setCatFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [sortField, setSortField] = useState<SortField>('date');
@@ -69,6 +85,12 @@ export default function TransactionsPage() {
     const order = months.map((m) => m.label);
     return [...new Set(allTx.map(effectiveTxMonth))].sort((a, b) => order.indexOf(a) - order.indexOf(b));
   }, [allTx, months]);
+  const sourceOptions = useMemo(() => {
+    const ids = new Set(allTx.map((tx) => tx.sourceBank).filter((id): id is string => !!id));
+    return [...ids]
+      .map((id) => ({ id, label: resolveSourceBank(id)?.label ?? id }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [allTx]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -77,6 +99,7 @@ export default function TransactionsPage() {
       if (typeFilter && tx.type !== typeFilter) return false;
       if (catFilter && tx.category !== catFilter) return false;
       if (monthFilter && effectiveTxMonth(tx) !== monthFilter) return false;
+      if (sourceFilter && tx.sourceBank !== sourceFilter) return false;
       if (dateFrom || dateTo) {
         if (!isIsoDate(tx.date)) return false;
         if (dateFrom && tx.date < dateFrom) return false;
@@ -84,7 +107,7 @@ export default function TransactionsPage() {
       }
       return true;
     });
-  }, [allTx, search, typeFilter, catFilter, monthFilter, dateFrom, dateTo]);
+  }, [allTx, search, typeFilter, catFilter, monthFilter, sourceFilter, dateFrom, dateTo]);
 
   // This ledger is the "raw data" view, so it must only ever show genuinely
   // itemized rows — never the synthetic per-category placeholders
@@ -102,6 +125,7 @@ export default function TransactionsPage() {
       else if (sortField === 'description') cmp = a.description.localeCompare(b.description);
       else if (sortField === 'category') cmp = a.category.localeCompare(b.category);
       else if (sortField === 'type') cmp = a.type.localeCompare(b.type);
+      else if (sortField === 'source') cmp = (resolveSourceBank(a.sourceBank)?.label ?? '').localeCompare(resolveSourceBank(b.sourceBank)?.label ?? '');
       else cmp = a.amount - b.amount;
       return sortDir === 'asc' ? cmp : -cmp;
     });
@@ -112,7 +136,10 @@ export default function TransactionsPage() {
     if (groupBy === 'none') return null;
     const map = new Map<string, Group>();
     sorted.forEach((tx) => {
-      const key = groupBy === 'category' ? tx.category : groupBy === 'month' ? effectiveTxMonth(tx) : tx.type;
+      const key = groupBy === 'category' ? tx.category
+        : groupBy === 'month' ? effectiveTxMonth(tx)
+        : groupBy === 'source' ? (tx.sourceBank ?? '')
+        : tx.type;
       const g = map.get(key) ?? { key, rows: [], income: 0, expense: 0 };
       g.rows.push(tx);
       if (tx.type === 'Income') g.income += tx.amount; else g.expense += tx.amount;
@@ -132,7 +159,7 @@ export default function TransactionsPage() {
   const pageSafe = Math.min(page, totalPages - 1);
   const pageSlice = groups ? [] : sorted.slice(pageSafe * perPage, (pageSafe + 1) * perPage);
 
-  const hasActiveFilters = !!(search || typeFilter || catFilter || monthFilter || dateFrom || dateTo);
+  const hasActiveFilters = !!(search || typeFilter || catFilter || monthFilter || sourceFilter || dateFrom || dateTo);
 
   // Months that only ever got a manual aggregate total (via "+ Add Month",
   // or an import that never landed itemized rows) — surfaced up front so
@@ -143,7 +170,7 @@ export default function TransactionsPage() {
   );
 
   function resetFilters() {
-    setSearch(''); setTypeFilter(''); setCatFilter(''); setMonthFilter(''); setDateFrom(''); setDateTo(''); setPage(0);
+    setSearch(''); setTypeFilter(''); setCatFilter(''); setMonthFilter(''); setSourceFilter(''); setDateFrom(''); setDateTo(''); setPage(0);
   }
 
   function toggleSort(field: SortField) {
@@ -161,10 +188,15 @@ export default function TransactionsPage() {
   }
 
   function exportCsv() {
-    const header = ['Date', 'Description', 'Category', 'Type', 'Amount', 'Currency'];
+    const header = ['Date', 'Description', 'Category', 'Source', 'Account Type', 'Type', 'Amount', 'Currency'];
     const lines = [header.join(',')];
     sorted.forEach((tx) => {
-      const row = [tx.date, tx.description, tx.category, tx.type, tx.amount.toFixed(2), currency];
+      const resolved = resolveSourceBank(tx.sourceBank);
+      const row = [
+        tx.date, tx.description, tx.category,
+        resolved?.label ?? '', resolved?.accountType ?? '',
+        tx.type, tx.amount.toFixed(2), currency,
+      ];
       lines.push(row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','));
     });
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
@@ -192,6 +224,7 @@ export default function TransactionsPage() {
             {tx.category}
           </span>
         </td>
+        <td className="px-4 py-2.5"><SourceBadge sourceBank={tx.sourceBank} /></td>
         <td className="px-4 py-2.5">
           <Badge variant={tx.type === 'Income' ? 'success' : 'neutral'}>
             {tx.type === 'Income' ? t('upload.typeIncome') : t('upload.typeExpense')}
@@ -207,14 +240,20 @@ export default function TransactionsPage() {
   function GroupHeaderRow({ group }: { group: Group }) {
     const isCollapsed = collapsed.has(group.key);
     const color = groupBy === 'category' ? (catColors[group.key] || '#6b7280') : undefined;
-    const label = groupBy === 'type' ? (group.key === 'Income' ? t('upload.typeIncome') : t('upload.typeExpense')) : group.key;
+    const resolvedSource = groupBy === 'source' ? resolveSourceBank(group.key) : null;
+    const label = groupBy === 'type' ? (group.key === 'Income' ? t('upload.typeIncome') : t('upload.typeExpense'))
+      : groupBy === 'source' ? (resolvedSource?.label ?? t('transactions.unknownSource'))
+      : group.key;
     return (
       <tr className="bg-gray-50 border-y border-gray-200 cursor-pointer select-none" onClick={() => toggleGroup(group.key)}>
-        <td colSpan={5} className="px-4 py-2.5">
+        <td colSpan={6} className="px-4 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2 text-[12px] font-bold text-gray-700">
               {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               {color && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />}
+              {groupBy === 'source' && (resolvedSource?.accountType === 'credit_card'
+                ? <CreditCard className="w-3.5 h-3.5 text-gray-400" />
+                : <Landmark className="w-3.5 h-3.5 text-gray-400" />)}
               {label}
               <span className="text-gray-400 font-normal">({group.rows.length})</span>
             </span>
@@ -298,6 +337,11 @@ export default function TransactionsPage() {
             <option value="">{t('transactions.allMonths')}</option>
             {monthLabels.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
+          <select className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-gray-50"
+            value={sourceFilter} onChange={(e) => { setSourceFilter(e.target.value); setPage(0); }}>
+            <option value="">{t('transactions.allSources')}</option>
+            {sourceOptions.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
           <div className="flex items-center gap-1.5">
             <input type="date" className="px-2 py-2 text-xs border border-gray-200 rounded-lg bg-gray-50"
               value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(0); }} title={t('transactions.dateFrom')} />
@@ -311,6 +355,7 @@ export default function TransactionsPage() {
             <option value="category">{t('transactions.groupByCategory')}</option>
             <option value="month">{t('transactions.groupByMonth')}</option>
             <option value="type">{t('transactions.groupByType')}</option>
+            <option value="source">{t('transactions.groupBySource')}</option>
           </select>
           {hasActiveFilters && (
             <button onClick={resetFilters}
@@ -339,6 +384,9 @@ export default function TransactionsPage() {
                     <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => toggleSort('category')}>
                       <span className="inline-flex items-center gap-1">{t('transactions.category')} {sortIcon('category')}</span>
                     </th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => toggleSort('source')}>
+                      <span className="inline-flex items-center gap-1">{t('transactions.source')} {sortIcon('source')}</span>
+                    </th>
                     <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => toggleSort('type')}>
                       <span className="inline-flex items-center gap-1">{t('transactions.type')} {sortIcon('type')}</span>
                     </th>
@@ -350,14 +398,14 @@ export default function TransactionsPage() {
                 <tbody className="divide-y divide-gray-100">
                   {groups ? (
                     groups.length === 0 ? (
-                      <tr><td colSpan={5} className="px-5 py-10">{renderEmptyLedgerCell()}</td></tr>
+                      <tr><td colSpan={6} className="px-5 py-10">{renderEmptyLedgerCell()}</td></tr>
                     ) : groups.flatMap((g) => [
                       <GroupHeaderRow key={`h-${g.key}`} group={g} />,
                       ...(collapsed.has(g.key) ? [] : g.rows.map((tx, i) => <TxRow key={tx.id ?? `${g.key}-${i}`} tx={tx} k={tx.id ?? `${g.key}-${i}`} />)),
                     ])
                   ) : (
                     pageSlice.length === 0 ? (
-                      <tr><td colSpan={5} className="px-5 py-10">{renderEmptyLedgerCell()}</td></tr>
+                      <tr><td colSpan={6} className="px-5 py-10">{renderEmptyLedgerCell()}</td></tr>
                     ) : pageSlice.map((tx, i) => <TxRow key={tx.id ?? i} tx={tx} k={tx.id ?? i} />)
                   )}
                 </tbody>
