@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Tag, Sparkles, ArrowUp, ArrowDown, Minus, ChevronRight } from 'lucide-react';
+import { ArrowRight, Tag, Sparkles, ArrowUp, ArrowDown, Minus, ChevronRight, Lightbulb } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -12,11 +12,24 @@ import { CategoryStackChart } from '@/components/charts/CategoryStackChart';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { CategoryProgressRing } from '@/components/CategoryProgressRing';
 import { EmptyState } from '@/components/EmptyState';
-import { fmt, fmtPct, getTrendData } from '@/lib/calculations';
+import { fmt, getTrendData, generateInsights, generateActions } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
+const priorityBorder = {
+  high: 'border-l-red-400',
+  medium: 'border-l-amber-400',
+  low: 'border-l-emerald-400',
+  info: 'border-l-blue-400',
+};
+const priorityVariant = {
+  high: 'danger',
+  medium: 'warning',
+  low: 'success',
+  info: 'info',
+} as const;
+
 export default function BudgetPage() {
-  const { months, categories, catBudgets, catColors, monthlyBudget, currency, t } = useFinance();
+  const { months, categories, catBudgets, catColors, monthlyBudget, currency, language, t } = useFinance();
 
   const hasHistory = months.length > 0;
   // Nudge harder toward the Smart Auto-Generate flow when there's real
@@ -69,7 +82,7 @@ export default function BudgetPage() {
             showUpload
           />
         ) : (
-          <BudgetHistoryView months={months} categories={categories} catBudgets={catBudgets} catColors={catColors} monthlyBudget={monthlyBudget} currency={currency} t={t} />
+          <BudgetHistoryView months={months} categories={categories} catBudgets={catBudgets} catColors={catColors} monthlyBudget={monthlyBudget} currency={currency} language={language} t={t} />
         )}
       </div>
     </>
@@ -77,7 +90,7 @@ export default function BudgetPage() {
 }
 
 function BudgetHistoryView({
-  months, categories, catBudgets, catColors, monthlyBudget, currency, t,
+  months, categories, catBudgets, catColors, monthlyBudget, currency, language, t,
 }: {
   months: ReturnType<typeof useFinance>['months'];
   categories: ReturnType<typeof useFinance>['categories'];
@@ -85,6 +98,7 @@ function BudgetHistoryView({
   catColors: Record<string, string>;
   monthlyBudget: number;
   currency: string;
+  language: ReturnType<typeof useFinance>['language'];
   t: ReturnType<typeof useFinance>['t'];
 }) {
   const m = months[months.length - 1];
@@ -99,13 +113,14 @@ function BudgetHistoryView({
     { icon: <span>🚨</span>, iconBg: 'bg-amber-50', label: t('budget.kpi.overBudgetCats'), value: String(m.overBudgetCats) },
   ];
 
-  const anomalies: { msg: string; severity: 'danger' | 'warning' }[] = [];
-  Object.entries(m.cats).forEach(([cat, spent]) => {
-    const prev = p?.cats?.[cat] || 0;
-    if (prev > 0 && spent > prev * 2) anomalies.push({ msg: `${cat} spiked ${((spent / prev - 1) * 100).toFixed(0)}% (${fmt(prev, currency)} → ${fmt(spent, currency)})`, severity: 'danger' });
-    const budget = catBudgets[cat] || 0;
-    if (budget > 0 && spent > budget * 1.5) anomalies.push({ msg: `${cat} is ${fmtPct((spent / budget) * 100)} of budget (${fmt(spent, currency)} vs ${fmt(budget, currency)})`, severity: 'warning' });
-  });
+  // Same generator behind Spending's CFO Insights and the full /insights
+  // page — one rule set, not three slightly-different anomaly detectors
+  // drifting apart across pages. Includes pace-of-month projection and
+  // chronic (2-month) over-budget detection that the old hand-rolled
+  // version here didn't have.
+  const priorityRank = { high: 0, medium: 1, low: 2, info: 3 };
+  const insights = generateInsights(months, catBudgets, currency, language).sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
+  const actions = generateActions(months, catBudgets, currency, language).slice(0, 3);
 
   return (
     <>
@@ -182,24 +197,52 @@ function BudgetHistoryView({
         </Card>
       </div>
 
-      <Card>
-        <CardHeader action={<Badge variant="info">{t('budget.autoScanned')}</Badge>}>{t('budget.anomalyDetection')}</CardHeader>
-        <CardBody compact>
-          {anomalies.length === 0 ? (
-            <div className="py-8 text-center text-gray-400 text-sm">{t('budget.noAnomalies')}</div>
-          ) : (
-            anomalies.map((a, i) => (
-              <div key={i} className="flex gap-3.5 px-5 py-3.5 border-b border-gray-100 last:border-0 hover:bg-gray-50/50">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5 ${a.severity === 'danger' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'}`}>!</div>
-                <div className="text-[13px]">
-                  <strong className="block mb-0.5">{a.severity === 'danger' ? t('budget.spendingSpike') : t('budget.budgetBreach')}</strong>
-                  <span className="text-gray-500">{a.msg}</span>
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-4">
+        <Card>
+          <CardHeader action={<Badge variant="info">{t('budget.autoScanned')}</Badge>}>
+            <span className="inline-flex items-center gap-1.5">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+              {t('budget.anomalyDetection')}
+            </span>
+          </CardHeader>
+          <CardBody compact>
+            {insights.length === 0 ? (
+              <div className="py-8 text-center text-gray-400 text-sm">{t('budget.noAnomalies')}</div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {insights.map((insight, i) => (
+                  <div key={i} className={cn('px-5 py-3.5 border-l-[3px]', priorityBorder[insight.priority])}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant={priorityVariant[insight.priority]}>{insight.priority}</Badge>
+                      <span className="text-[13px] font-semibold text-gray-900">{insight.title}</span>
+                    </div>
+                    <p className="text-[12px] text-gray-500 leading-relaxed" dangerouslySetInnerHTML={{ __html: insight.body }} />
+                  </div>
+                ))}
               </div>
-            ))
-          )}
-        </CardBody>
-      </Card>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader>{t('budget.recommendedActions')}</CardHeader>
+          <CardBody compact>
+            {actions.length === 0 ? (
+              <div className="py-8 text-center text-gray-400 text-sm">{t('budget.noAnomalies')}</div>
+            ) : (
+              actions.map((action, i) => (
+                <div key={i} className="flex gap-3.5 px-5 py-3.5 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
+                  <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5">{i + 1}</div>
+                  <div className="text-[13px]">
+                    <strong className="block mb-0.5">{action.title}</strong>
+                    <span className="text-gray-500">{action.detail}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardBody>
+        </Card>
+      </div>
     </>
   );
 }

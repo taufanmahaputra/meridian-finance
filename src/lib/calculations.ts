@@ -102,8 +102,8 @@ export function generateInsights(
   if (months.length === 0) return [];
   const m = months[months.length - 1];
   const insights: Insight[] = [];
-  const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
   const isId = language === 'id';
+  const monthlyBudget = Object.values(catBudgets).reduce((a, b) => a + b, 0);
 
   if (months.length >= 3) {
     const rates = months.slice(-3).map((x) => x.savingsRate);
@@ -118,64 +118,140 @@ export function generateInsights(
     }
   }
 
-  const travelSpend = m.cats['Travel'] || 0;
-  const travelBudget = catBudgets['Travel'] || 0;
-  if (travelSpend > 0 && travelBudget === 0) {
-    const avgTravel = months.reduce((s, x) => s + (x.cats['Travel'] || 0), 0) / months.length;
+  // Pace-of-month projection — only meaningful mid-month, on a partial
+  // month's data. The single most "CFO would say this out loud" insight:
+  // not what happened, but what's about to happen if nothing changes.
+  if (m.partial && m.expenses > 0 && monthlyBudget > 0) {
+    const projected = m.avgDaily * 30;
+    if (projected > monthlyBudget) {
+      const overBy = ((projected - monthlyBudget) / monthlyBudget) * 100;
+      insights.push({
+        priority: 'high',
+        title: isId ? 'Proyeksi Melebihi Anggaran Bulan Ini' : 'On Pace to Exceed This Month\'s Budget',
+        body: isId
+          ? `Dengan laju saat ini (<strong>${fmt(m.avgDaily, currency)}/hari</strong>), proyeksi total akhir bulan <strong>${fmt(projected, currency)}</strong> — <strong>${overBy.toFixed(0)}% di atas</strong> anggaran ${fmt(monthlyBudget, currency)}.`
+          : `At the current pace (<strong>${fmt(m.avgDaily, currency)}/day</strong>), you're projected to end the month at <strong>${fmt(projected, currency)}</strong> — <strong>${overBy.toFixed(0)}% over</strong> your ${fmt(monthlyBudget, currency)} budget.`,
+      });
+    }
+  }
+
+  // Spend concentration — one category eating an outsized share makes the
+  // whole budget fragile to a single line item.
+  const rankedCats = Object.entries(m.cats).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const topCat = rankedCats[0];
+  if (topCat && m.expenses > 0) {
+    const share = (topCat[1] / m.expenses) * 100;
+    if (share > 40) {
+      insights.push({
+        priority: 'medium',
+        title: isId ? `${topCat[0]} Mendominasi Pengeluaran` : `${topCat[0]} Dominates Your Spending`,
+        body: isId
+          ? `<strong>${topCat[0]}</strong> adalah <strong>${share.toFixed(0)}%</strong> dari total pengeluaran bulan ini (${fmt(topCat[1], currency)} dari ${fmt(m.expenses, currency)}). Konsentrasi setinggi ini membuat anggaran rentan pada satu kategori saja.`
+          : `<strong>${topCat[0]}</strong> is <strong>${share.toFixed(0)}%</strong> of this month's spending (${fmt(topCat[1], currency)} of ${fmt(m.expenses, currency)}). That much concentration in one category makes your budget fragile to it alone.`,
+      });
+    }
+  }
+
+  // The single largest unbudgeted category — not every unbudgeted category
+  // at once (that's noise), just the one actually worth a budget line.
+  const unbudgeted = rankedCats.find(([cat]) => !catBudgets[cat]);
+  if (unbudgeted && m.expenses > 0 && unbudgeted[1] > m.expenses * 0.1) {
+    const [cat] = unbudgeted;
+    const avg = months.reduce((s, x) => s + (x.cats[cat] || 0), 0) / months.length;
     insights.push({
       priority: 'high',
-      title: isId ? 'Travel Belum Punya Anggaran' : 'Travel Has No Budget Allocated',
+      title: isId ? `${cat} Belum Punya Anggaran` : `${cat} Has No Budget Allocated`,
       body: isId
-        ? `Pengeluaran Travel rata-rata <strong>${fmt(avgTravel, currency)}/bulan</strong>. Kategori tanpa anggaran ini menjadi penyebab utama pelanggaran anggaran. Mengalokasikan ${symbol}500–700 dapat memperbaiki beberapa flag lewat anggaran.`
-        : `Travel spending averages <strong>${fmt(avgTravel, currency)}/month</strong>. This unbudgeted category drives most budget overruns. Allocating ${symbol}500–700 would fix several over-budget flags.`,
+        ? `Pengeluaran ${cat} rata-rata <strong>${fmt(avg, currency)}/bulan</strong>. Kategori tanpa anggaran seperti ini seringkali jadi penyebab utama pelanggaran anggaran keseluruhan.`
+        : `${cat} spending averages <strong>${fmt(avg, currency)}/month</strong>. Unbudgeted categories like this are usually what actually drives an overall budget overrun.`,
     });
   }
 
   const installments = m.cats['Installments'] || 0;
-  if (installments > 500) {
+  if (installments > 0) {
     insights.push({
-      priority: 'medium',
+      priority: 'info',
       title: isId ? 'Cicilan Adalah Biaya Tetap yang Dapat Diprediksi' : 'Installments Are Predictable Fixed Costs',
       body: isId
-        ? `Cicilan bulanan sebesar <strong>${fmt(installments, currency)}</strong> adalah kewajiban tetap, bukan pengeluaran diskresioner. Lacak secara terpisah.`
-        : `Monthly installments at <strong>${fmt(installments, currency)}</strong> are recurring obligations, not discretionary spending. Track them separately.`,
+        ? `Cicilan bulanan sebesar <strong>${fmt(installments, currency)}</strong> adalah kewajiban tetap, bukan pengeluaran diskresioner. Lacak secara terpisah dari anggaran gaya hidup.`
+        : `Monthly installments at <strong>${fmt(installments, currency)}</strong> are recurring obligations, not discretionary spending. Track them separately from your lifestyle budget.`,
     });
   }
 
-  Object.entries(m.cats).forEach(([cat, spent]) => {
-    const budget = catBudgets[cat] || 0;
-    if (budget > 0 && spent > budget * 3) {
-      insights.push({
-        priority: 'medium',
-        title: isId ? `${cat} Jauh Melebihi Anggaran` : `${cat} Significantly Over Budget`,
-        body: isId
-          ? `<strong>${fmt(spent, currency)}</strong> terpakai vs anggaran <strong>${fmt(budget, currency)}</strong> (${((spent / budget) * 100).toFixed(0)}%). Pertimbangkan menyesuaikan anggaran agar sesuai kenyataan.`
-          : `<strong>${fmt(spent, currency)}</strong> spent vs <strong>${fmt(budget, currency)}</strong> budget (${((spent / budget) * 100).toFixed(0)}%). Consider adjusting your budget to reflect reality.`,
-      });
-    }
-  });
+  // Chronic over-budget — a category over budget two months running is a
+  // pattern, not a one-off, and deserves a higher-priority flag than a
+  // single bad month.
+  if (months.length >= 2) {
+    const [prevMo, currMo] = months.slice(-2);
+    Object.entries(catBudgets).forEach(([cat, budget]) => {
+      if (!budget) return;
+      const currSpent = currMo.cats[cat] || 0;
+      const prevSpent = prevMo.cats[cat] || 0;
+      if (currSpent > budget && prevSpent > budget) {
+        insights.push({
+          priority: 'high',
+          title: isId ? `${cat} Konsisten Lewat Anggaran` : `${cat} Is Chronically Over Budget`,
+          body: isId
+            ? `Lewat anggaran <strong>2 bulan berturut-turut</strong> (${fmt(prevSpent, currency)}, lalu ${fmt(currSpent, currency)} vs anggaran ${fmt(budget, currency)}). Ini kemungkinan bukan penyimpangan sesaat.`
+            : `Over budget for <strong>2 months in a row</strong> (${fmt(prevSpent, currency)}, then ${fmt(currSpent, currency)} vs a ${fmt(budget, currency)} budget). This is a pattern, not a one-off.`,
+        });
+      } else if (budget > 0 && currSpent > 0 && currSpent < budget * 3) {
+        // A single very-large overrun still gets its own flag, one level
+        // down from the chronic case.
+        if (currSpent > budget * 1.5 && !(currSpent > budget && prevSpent > budget)) {
+          insights.push({
+            priority: 'medium',
+            title: isId ? `${cat} Jauh Melebihi Anggaran` : `${cat} Significantly Over Budget`,
+            body: isId
+              ? `<strong>${fmt(currSpent, currency)}</strong> terpakai vs anggaran <strong>${fmt(budget, currency)}</strong> (${((currSpent / budget) * 100).toFixed(0)}%).`
+              : `<strong>${fmt(currSpent, currency)}</strong> spent vs <strong>${fmt(budget, currency)}</strong> budget (${((currSpent / budget) * 100).toFixed(0)}%).`,
+          });
+        }
+      }
+    });
+  } else {
+    Object.entries(m.cats).forEach(([cat, spent]) => {
+      const budget = catBudgets[cat] || 0;
+      if (budget > 0 && spent > budget * 1.5) {
+        insights.push({
+          priority: 'medium',
+          title: isId ? `${cat} Jauh Melebihi Anggaran` : `${cat} Significantly Over Budget`,
+          body: isId
+            ? `<strong>${fmt(spent, currency)}</strong> terpakai vs anggaran <strong>${fmt(budget, currency)}</strong> (${((spent / budget) * 100).toFixed(0)}%).`
+            : `<strong>${fmt(spent, currency)}</strong> spent vs <strong>${fmt(budget, currency)}</strong> budget (${((spent / budget) * 100).toFixed(0)}%).`,
+        });
+      }
+    });
+  }
 
-  const food = m.cats['Food & Groceries'] || 0;
-  const foodBudget = catBudgets['Food & Groceries'] || 0;
-  if (food < foodBudget * 0.7) {
+  // Positive reinforcement — the budgeted category with the best margin
+  // below its limit, so the feed isn't purely a list of things gone wrong.
+  const wellManaged = Object.entries(catBudgets)
+    .filter(([cat, budget]) => budget > 0 && (m.cats[cat] || 0) > 0 && (m.cats[cat] || 0) < budget * 0.7)
+    .sort((a, b) => (m.cats[a[0]] || 0) / a[1] - (m.cats[b[0]] || 0) / b[1])[0];
+  if (wellManaged) {
+    const [cat, budget] = wellManaged;
+    const spent = m.cats[cat] || 0;
     insights.push({
       priority: 'low',
-      title: isId ? 'Makanan & Belanja Terkelola Baik' : 'Food & Groceries Well Managed',
+      title: isId ? `${cat} Terkelola Baik` : `${cat} Well Managed`,
       body: isId
-        ? `Pengeluaran <strong>${fmt(food, currency)}</strong> — jauh di bawah anggaran <strong>${fmt(foodBudget, currency)}</strong>. Pertimbangkan mengurangi frekuensi pesan-antar untuk tabungan tambahan.`
-        : `Spending at <strong>${fmt(food, currency)}</strong> — well under the <strong>${fmt(foodBudget, currency)}</strong> budget. Consider reducing delivery frequency for additional savings.`,
+        ? `Pengeluaran <strong>${fmt(spent, currency)}</strong> — jauh di bawah anggaran <strong>${fmt(budget, currency)}</strong>. Sisa anggaran ini bisa dialihkan ke tabungan atau kategori lain.`
+        : `Spending at <strong>${fmt(spent, currency)}</strong> — well under the <strong>${fmt(budget, currency)}</strong> budget. That headroom could go toward savings or another category instead.`,
     });
   }
 
   const housing = m.cats['Housing'] || 0;
-  const housingPct = (housing / m.income) * 100;
-  insights.push({
-    priority: 'info',
-    title: isId ? `Housing di ${housingPct.toFixed(0)}% dari Pendapatan` : `Housing at ${housingPct.toFixed(0)}% of Income`,
-    body: isId
-      ? `Biaya tempat tinggal <strong>${fmt(housing, currency)}</strong> ${housingPct < 30 ? 'masih dalam' : 'melebihi'} batas wajar 30%. ${housingPct < 30 ? 'Anda berada di rentang yang sehat.' : 'Pertimbangkan cara mengurangi biaya tempat tinggal.'}`
-      : `Rent at <strong>${fmt(housing, currency)}</strong> is ${housingPct < 30 ? 'within' : 'above'} the 30% benchmark. ${housingPct < 30 ? 'You\'re in a healthy range.' : 'Consider ways to reduce housing costs.'}`,
-  });
+  if (housing > 0 && m.income > 0) {
+    const housingPct = (housing / m.income) * 100;
+    insights.push({
+      priority: 'info',
+      title: isId ? `Housing di ${housingPct.toFixed(0)}% dari Pendapatan` : `Housing at ${housingPct.toFixed(0)}% of Income`,
+      body: isId
+        ? `Biaya tempat tinggal <strong>${fmt(housing, currency)}</strong> ${housingPct < 30 ? 'masih dalam' : 'melebihi'} batas wajar 30%. ${housingPct < 30 ? 'Anda berada di rentang yang sehat.' : 'Pertimbangkan cara mengurangi biaya tempat tinggal.'}`
+        : `Rent at <strong>${fmt(housing, currency)}</strong> is ${housingPct < 30 ? 'within' : 'above'} the 30% benchmark. ${housingPct < 30 ? 'You\'re in a healthy range.' : 'Consider ways to reduce housing costs.'}`,
+    });
+  }
 
   return insights;
 }
@@ -192,12 +268,18 @@ export function generateActions(
   const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
   const isId = language === 'id';
 
-  const avgTravel = months.reduce((s, x) => s + (x.cats['Travel'] || 0), 0) / months.length;
-  if (avgTravel > 100 && (catBudgets['Travel'] || 0) === 0) {
-    actions.push({
-      title: isId ? `Tetapkan anggaran Travel sebesar ${symbol}${Math.round(avgTravel / 100) * 100}/bln` : `Set Travel budget at ${symbol}${Math.round(avgTravel / 100) * 100}/mo`,
-      detail: isId ? `Rata-rata pengeluaran Travel Anda ${fmt(avgTravel, currency)}/bln. Mengalokasikan anggaran menghilangkan sebagian besar flag lewat anggaran.` : `You've averaged ${fmt(avgTravel, currency)}/mo on travel. Allocating a budget eliminates most over-budget flags.`,
-    });
+  const rankedCats = Object.entries(m.cats).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const unbudgeted = rankedCats.find(([cat]) => !catBudgets[cat]);
+  if (unbudgeted) {
+    const [cat] = unbudgeted;
+    const avgSpend = months.reduce((s, x) => s + (x.cats[cat] || 0), 0) / months.length;
+    if (avgSpend > 50) {
+      const suggested = Math.round(avgSpend / 100) * 100;
+      actions.push({
+        title: isId ? `Tetapkan anggaran ${cat} sebesar ${fmt(suggested, currency)}/bln` : `Set a ${fmt(suggested, currency)}/mo budget for ${cat}`,
+        detail: isId ? `Rata-rata pengeluaran ${cat} Anda ${fmt(avgSpend, currency)}/bln, tanpa anggaran. Mengalokasikan anggaran menghilangkan sebagian besar flag lewat anggaran yang tidak jelas asalnya.` : `Your ${cat} spending averages ${fmt(avgSpend, currency)}/mo with no budget set. Allocating one turns a fuzzy leak into a tracked line item.`,
+      });
+    }
   }
 
   const installments = m.cats['Installments'] || 0;

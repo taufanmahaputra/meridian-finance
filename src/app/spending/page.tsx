@@ -1,26 +1,42 @@
 'use client';
 
 import Link from 'next/link';
-import { TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, Sparkles, Lightbulb, ArrowRight } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { Badge } from '@/components/ui/Badge';
-import { CategoryPieChart } from '@/components/charts/CategoryPieChart';
+import { MoneyFlowChart } from '@/components/charts/MoneyFlowChart';
 import { CashFlowChart } from '@/components/charts/CashFlowChart';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { EmptyState } from '@/components/EmptyState';
-import { fmt, fmtPct, getTrendData } from '@/lib/calculations';
+import { fmt, fmtPct, getTrendData, generateInsights, generateActions } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
+
+const priorityBorder = {
+  high: 'border-l-red-400',
+  medium: 'border-l-amber-400',
+  low: 'border-l-emerald-400',
+  info: 'border-l-blue-400',
+};
+const priorityVariant = {
+  high: 'danger',
+  medium: 'warning',
+  low: 'success',
+  info: 'info',
+} as const;
 
 const SPARK_WINDOW = 6;
 // A category move smaller than this (in display currency) is noise, not
 // something worth a CFO's attention — keeps the movers list to real signal.
 const MOVER_MIN_DELTA = 10;
 
+const INSIGHTS_SHOWN = 3;
+const ACTIONS_SHOWN = 2;
+
 export default function SpendingPage() {
-  const { months, catBudgets, catColors, currency, t } = useFinance();
+  const { months, catBudgets, catColors, currency, language, t } = useFinance();
 
   if (months.length === 0) {
     return (
@@ -62,6 +78,14 @@ export default function SpendingPage() {
     : [];
 
   const cashFlowData = months.map((mo) => ({ name: mo.label, income: mo.income, expense: mo.expenses }));
+
+  // Same generator that powers the full /insights page — this is a
+  // curated top-N right where the spending happened, not a duplicate page.
+  const priorityRank = { high: 0, medium: 1, low: 2, info: 3 };
+  const insights = generateInsights(months, catBudgets, currency, language)
+    .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority])
+    .slice(0, INSIGHTS_SHOWN);
+  const actions = generateActions(months, catBudgets, currency, language).slice(0, ACTIONS_SHOWN);
 
   const kpis: { icon: React.ReactNode; iconBg: string; tone: 'neutral' | 'emerald' | 'red' | 'indigo'; label: string; value: string; text?: string; className?: string; trendSuffix?: string; spark?: number[]; sparklineGood?: boolean }[] = [
     { icon: <span>💸</span>, iconBg: 'bg-red-100', tone: trendUp ? 'red' : 'neutral', label: t('spending.kpi.totalSpend'), value: fmt(m.expenses, currency), text: spendTrend.text, className: spendTrend.className, spark: sparkWindow.map((x) => x.expenses), sparklineGood: false },
@@ -147,25 +171,22 @@ export default function SpendingPage() {
           <CardBody><CashFlowChart data={cashFlowData} currency={currency} /></CardBody>
         </Card>
 
-        {/* ── Where it went ───────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-4 mb-5">
-          <Card>
-            <CardHeader>{t('spending.categorySplit')}</CardHeader>
-            <CardBody>
-              {rankedCats.length === 0 ? (
-                <div className="py-14 text-center text-gray-400 text-sm">{t('transactions.noSpending')}</div>
-              ) : (
-                <CategoryPieChart cats={m.cats} catColors={catColors} currency={currency} />
-              )}
-            </CardBody>
-          </Card>
+        {/* ── Where the money went ────────────────────────────────── */}
+        <Card className="mb-5">
+          <CardHeader>{t('spending.moneyFlow')}</CardHeader>
+          <CardBody>
+            <MoneyFlowChart income={m.income} expenses={m.expenses} savings={m.savings} cats={m.cats} catColors={catColors} currency={currency} />
+          </CardBody>
+        </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-4 mb-5">
           <Card>
             <CardHeader>{t('spending.topCategories')}</CardHeader>
             <CardBody compact>
               {rankedCats.length === 0 ? (
                 <div className="py-14 text-center text-gray-400 text-sm">{t('transactions.noSpending')}</div>
               ) : (
-                <div className="divide-y divide-gray-100 max-h-[280px] overflow-y-auto">
+                <div className="divide-y divide-gray-100 max-h-[340px] overflow-y-auto">
                   {rankedCats.map(([name, amount]) => {
                     const pct = catTotal > 0 ? (amount / catTotal) * 100 : 0;
                     const color = catColors[name] || '#6b7280';
@@ -187,6 +208,53 @@ export default function SpendingPage() {
                   })}
                 </div>
               )}
+            </CardBody>
+          </Card>
+
+          {/* ── CFO Insights ─────────────────────────────────────── */}
+          <Card>
+            <CardHeader>
+              <span className="inline-flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                {t('spending.cfoInsights')}
+              </span>
+            </CardHeader>
+            <CardBody compact>
+              {insights.length === 0 && actions.length === 0 ? (
+                <div className="py-14 text-center text-gray-400 text-sm">{t('spending.noInsights')}</div>
+              ) : (
+                <>
+                  {insights.length > 0 && (
+                    <div className="divide-y divide-gray-100 max-h-[220px] overflow-y-auto">
+                      {insights.map((insight, i) => (
+                        <div key={i} className={cn('px-4 py-3 border-l-[3px]', priorityBorder[insight.priority])}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant={priorityVariant[insight.priority]}>{insight.priority}</Badge>
+                            <span className="text-[13px] font-semibold text-gray-900">{insight.title}</span>
+                          </div>
+                          <p className="text-[12px] text-gray-500 leading-relaxed" dangerouslySetInnerHTML={{ __html: insight.body }} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {actions.length > 0 && (
+                    <div className="border-t border-gray-100">
+                      {actions.map((action, i) => (
+                        <div key={i} className="flex gap-3 px-4 py-3 border-b border-gray-100 last:border-0">
+                          <div className="w-5 h-5 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">{i + 1}</div>
+                          <div className="text-[12px]">
+                            <strong className="block mb-0.5 text-gray-900">{action.title}</strong>
+                            <span className="text-gray-500">{action.detail}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+              <Link href="/insights" className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-[12px] font-semibold text-indigo-600 hover:bg-indigo-50/50 transition-colors border-t border-gray-100">
+                {t('spending.viewAllInsights')} <ArrowRight className="w-3 h-3" />
+              </Link>
             </CardBody>
           </Card>
         </div>
