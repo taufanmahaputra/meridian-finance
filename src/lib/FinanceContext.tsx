@@ -2,13 +2,22 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { MonthData, Transaction, Category, UploadHistoryEntry } from '@/types/finance';
-import { computeDerived, sortMonths } from '@/lib/calculations';
+import { computeDerived, sortMonths, monthLabelFromDate } from '@/lib/calculations';
 import { createClient } from '@/lib/supabase';
 import { DEFAULT_CATEGORIES, DEFAULT_CURRENCY, nextChartColor } from '@/lib/constants';
 import { t as translate, DEFAULT_LANGUAGE, type Language } from '@/lib/i18n';
 import type { User } from '@supabase/supabase-js';
 
 const UPLOAD_HISTORY_LIMIT = 20;
+
+export interface TransactionInput {
+  date: string;
+  description: string;
+  amount: number;
+  category: string;
+  type: 'Income' | 'Expense';
+  notes?: string;
+}
 
 interface FinanceState {
   months: MonthData[];
@@ -30,6 +39,9 @@ interface FinanceState {
   logUpload: (entry: Omit<UploadHistoryEntry, 'id' | 'createdAt'>) => Promise<void>;
   clearUploadHistory: () => Promise<void>;
   updateMonthIncome: (label: string, income: number) => Promise<void>;
+  addTransaction: (input: TransactionInput) => Promise<void>;
+  updateTransaction: (id: string, updates: Partial<TransactionInput>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   addCategory: (name: string, budget: number, color?: string) => Promise<void>;
   updateCategory: (id: string, updates: Partial<Pick<Category, 'name' | 'budget' | 'color'>>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
@@ -341,6 +353,107 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, months, catBudgets]);
 
+  /** Recomputes and persists one month's cats/expenses from whatever is
+   *  currently in the database for that month — always a fresh read, never
+   *  local state, so a single-transaction add/edit/delete can't drift out
+   *  of sync the same way the append-import race did. Auto-creates the
+   *  month row if a manually added transaction is the first thing in it. */
+  const resyncMonth = useCallback(async (label: string) => {
+    if (!user) return;
+    const { data } = await supabase.from('transactions').select('*').eq('user_id', user.id).eq('month', label);
+    const rows = (data ?? []).map(mapTransactionRow);
+
+    const cats: Record<string, number> = {};
+    let incomeTotal = 0;
+    rows.forEach((t) => {
+      if (t.type === 'Expense') cats[t.category] = (cats[t.category] || 0) + t.amount;
+      else incomeTotal += t.amount;
+    });
+    const expenses = Object.values(cats).reduce((a, b) => a + b, 0);
+    const existing = months.find((m) => m.label === label);
+    const monthIncome = incomeTotal > 0 ? incomeTotal : (existing?.income ?? income);
+
+    let monthId = existing?.id;
+    if (monthId) {
+      await supabase.from('months').update({ expenses, cats, income: monthIncome }).eq('id', monthId);
+    } else if (rows.length > 0) {
+      const { data: inserted } = await supabase.from('months').insert({
+        user_id: user.id, label, partial: false, income: monthIncome, expenses, cats,
+      }).select().single();
+      monthId = inserted?.id;
+    } else {
+      return; // month row deleted and now has zero transactions — nothing to resync
+    }
+
+    const computed = computeDerived(
+      { id: monthId, label, partial: existing?.partial ?? false, income: monthIncome, expenses, cats },
+      catBudgets
+    );
+    setMonths((prev) => sortMonths([...prev.filter((m) => m.label !== label), computed]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, months, catBudgets, income]);
+
+  /** Adds a single transaction that didn't come from a statement — the
+   *  month it belongs to is derived from its date and created if it
+   *  doesn't exist yet. */
+  const addTransaction = useCallback(async (input: TransactionInput) => {
+    if (!user) return;
+    const label = monthLabelFromDate(input.date);
+    const { data } = await supabase.from('transactions').insert({
+      user_id: user.id,
+      date: input.date,
+      description: input.description,
+      amount: input.amount,
+      category: input.category,
+      type: input.type,
+      month: label,
+      notes: input.notes || null,
+      original_amount: input.amount,
+      original_currency: currency,
+      fx_rate: 1,
+      source_bank: null,
+    }).select().single();
+    if (data) setTransactions((prev) => [mapTransactionRow(data), ...prev]);
+    await resyncMonth(label);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, currency, resyncMonth]);
+
+  /** Edits an existing transaction (e.g. correcting a wrong category from
+   *  an import) and resyncs whichever month(s) are affected — both the old
+   *  and new one, if the edit moved the date across a month boundary. */
+  const updateTransaction = useCallback(async (id: string, updates: Partial<TransactionInput>) => {
+    if (!user) return;
+    const existingTx = transactions.find((t) => t.id === id);
+    if (!existingTx) return;
+    const newDate = updates.date ?? existingTx.date;
+    const newLabel = monthLabelFromDate(newDate);
+    const oldLabel = existingTx.month ?? monthLabelFromDate(existingTx.date);
+
+    const { data } = await supabase.from('transactions').update({
+      date: newDate,
+      description: updates.description ?? existingTx.description,
+      amount: updates.amount ?? existingTx.amount,
+      category: updates.category ?? existingTx.category,
+      type: updates.type ?? existingTx.type,
+      month: newLabel,
+    }).eq('id', id).select().single();
+    if (data) setTransactions((prev) => prev.map((t) => (t.id === id ? mapTransactionRow(data) : t)));
+
+    await resyncMonth(newLabel);
+    if (oldLabel !== newLabel) await resyncMonth(oldLabel);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, transactions, resyncMonth]);
+
+  const deleteTransaction = useCallback(async (id: string) => {
+    if (!user) return;
+    const existingTx = transactions.find((t) => t.id === id);
+    await supabase.from('transactions').delete().eq('id', id);
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+    const label = existingTx?.month ?? (existingTx ? monthLabelFromDate(existingTx.date) : null);
+    if (label) await resyncMonth(label);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, transactions, resyncMonth]);
+
   const addCategory = useCallback(async (name: string, budget: number, color?: string) => {
     const finalColor = color || nextChartColor(categories.map((c) => c.color));
     if (user) {
@@ -426,6 +539,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       months, transactions, categories, catBudgets, catColors, monthlyBudget, income, currency, language, t, user, loading,
       uploadHistory,
       addMonth, importMonth, deleteMonth, logUpload, clearUploadHistory, updateMonthIncome,
+      addTransaction, updateTransaction, deleteTransaction,
       addCategory, updateCategory, deleteCategory, updateIncome, updateCurrency, updateLanguage, clearAllData, signOut,
     }}>
       {children}

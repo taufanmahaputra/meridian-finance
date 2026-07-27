@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Search, Download, X, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, ChevronRight, Info, CreditCard, Landmark,
+  Plus, Pencil, Trash2,
 } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
@@ -63,7 +64,10 @@ function pageWindow(current: number, total: number, size = 5): number[] {
 // sort, export. Totals, breakdowns, and trend charts live on Spending now;
 // this is the "look at the actual rows" tool, not an analysis surface.
 export default function TransactionsPage() {
-  const { months, transactions, catColors, currency, t } = useFinance();
+  const {
+    months, transactions, categories, catColors, currency, t,
+    addTransaction, updateTransaction, deleteTransaction,
+  } = useFinance();
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'' | 'Income' | 'Expense'>('');
@@ -78,6 +82,13 @@ export default function TransactionsPage() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(PAGE_SIZES[0]);
+
+  const [modalMode, setModalMode] = useState<'add' | 'edit' | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState({ date: '', description: '', amount: '', category: '', type: 'Expense' as 'Income' | 'Expense' });
+  const [saving, setSaving] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const allTx = useMemo(() => buildTransactionLedger(months, transactions), [months, transactions]);
   const categoryNames = useMemo(() => [...new Set(allTx.map((tx) => tx.category))].sort(), [allTx]);
@@ -187,6 +198,37 @@ export default function TransactionsPage() {
     });
   }
 
+  function openAddModal() {
+    setModalMode('add');
+    setEditId(null);
+    setForm({ date: new Date().toISOString().slice(0, 10), description: '', amount: '', category: categories[0]?.name ?? '', type: 'Expense' });
+  }
+
+  function openEditModal(tx: Transaction) {
+    if (!tx.id) return;
+    setModalMode('edit');
+    setEditId(tx.id);
+    setForm({ date: tx.date, description: tx.description, amount: String(tx.amount), category: tx.category, type: tx.type });
+  }
+
+  async function handleSaveModal() {
+    const amount = parseFloat(form.amount);
+    if (!form.date || !form.description.trim() || !form.category || !isFinite(amount) || amount <= 0) return;
+    setSaving(true);
+    const input = { date: form.date, description: form.description.trim(), amount, category: form.category, type: form.type };
+    if (modalMode === 'edit' && editId) await updateTransaction(editId, input);
+    else await addTransaction(input);
+    setSaving(false);
+    setModalMode(null);
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    await deleteTransaction(id);
+    setDeletingId(null);
+    setDeleteConfirmId(null);
+  }
+
   function exportCsv() {
     const header = ['Date', 'Description', 'Category', 'Source', 'Account Type', 'Type', 'Amount', 'Currency'];
     const lines = [header.join(',')];
@@ -233,6 +275,28 @@ export default function TransactionsPage() {
         <td className={cn('px-4 py-2.5 text-right text-[13px] font-semibold font-mono whitespace-nowrap', tx.type === 'Income' ? 'text-emerald-600' : 'text-gray-900')}>
           {tx.type === 'Income' ? '+' : '-'}{fmt(tx.amount, currency, 2)}
         </td>
+        <td className="px-4 py-2.5 text-right whitespace-nowrap">
+          {tx.id && (deleteConfirmId === tx.id ? (
+            <div className="inline-flex items-center gap-2">
+              <button onClick={() => handleDelete(tx.id!)} disabled={deletingId === tx.id}
+                className="text-[11px] font-semibold text-red-600 hover:text-red-700 disabled:opacity-40">
+                {deletingId === tx.id ? t('transactions.deleting') : t('transactions.confirmDelete')}
+              </button>
+              <button onClick={() => setDeleteConfirmId(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2.5">
+              <button onClick={() => openEditModal(tx)} title={t('transactions.edit')} className="text-gray-400 hover:text-indigo-600 transition-colors">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => setDeleteConfirmId(tx.id!)} title={t('transactions.delete')} className="text-gray-400 hover:text-red-600 transition-colors">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </td>
       </tr>
     );
   }
@@ -246,7 +310,7 @@ export default function TransactionsPage() {
       : group.key;
     return (
       <tr className="bg-gray-50 border-y border-gray-200 cursor-pointer select-none" onClick={() => toggleGroup(group.key)}>
-        <td colSpan={6} className="px-4 py-2.5">
+        <td colSpan={7} className="px-4 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2 text-[12px] font-bold text-gray-700">
               {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -363,8 +427,12 @@ export default function TransactionsPage() {
               <X className="w-3.5 h-3.5" /> {t('transactions.resetFilters')}
             </button>
           )}
+          <button onClick={openAddModal}
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <Plus className="w-3.5 h-3.5" /> {t('transactions.addTransaction')}
+          </button>
           <button onClick={exportCsv}
-            className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors">
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors">
             <Download className="w-3.5 h-3.5" /> {t('transactions.export')}
           </button>
         </div>
@@ -393,19 +461,20 @@ export default function TransactionsPage() {
                     <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => toggleSort('amount')}>
                       <span className="inline-flex items-center gap-1 justify-end w-full">{t('transactions.amount')} {sortIcon('amount')}</span>
                     </th>
+                    <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider w-[80px]" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {groups ? (
                     groups.length === 0 ? (
-                      <tr><td colSpan={6} className="px-5 py-10">{renderEmptyLedgerCell()}</td></tr>
+                      <tr><td colSpan={7} className="px-5 py-10">{renderEmptyLedgerCell()}</td></tr>
                     ) : groups.flatMap((g) => [
                       <GroupHeaderRow key={`h-${g.key}`} group={g} />,
                       ...(collapsed.has(g.key) ? [] : g.rows.map((tx, i) => <TxRow key={tx.id ?? `${g.key}-${i}`} tx={tx} k={tx.id ?? `${g.key}-${i}`} />)),
                     ])
                   ) : (
                     pageSlice.length === 0 ? (
-                      <tr><td colSpan={6} className="px-5 py-10">{renderEmptyLedgerCell()}</td></tr>
+                      <tr><td colSpan={7} className="px-5 py-10">{renderEmptyLedgerCell()}</td></tr>
                     ) : pageSlice.map((tx, i) => <TxRow key={tx.id ?? i} tx={tx} k={tx.id ?? i} />)
                   )}
                 </tbody>
@@ -450,6 +519,69 @@ export default function TransactionsPage() {
           </CardBody>
         </Card>
       </div>
+
+      {modalMode && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center px-4" onClick={() => setModalMode(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-[440px] shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold mb-1">{modalMode === 'edit' ? t('transactions.editTitle') : t('transactions.addTitle')}</h3>
+            <p className="text-xs text-gray-400 mb-4">{modalMode === 'edit' ? t('transactions.editSubtitle') : t('transactions.addSubtitle')}</p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('transactions.date')}</label>
+                <input type="date"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('transactions.description')}</label>
+                <input type="text"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder={t('transactions.descriptionPlaceholder')} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('transactions.amount')}</label>
+                  <input type="number" step="0.01" min="0"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                    value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('transactions.type')}</label>
+                  <select
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                    value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as 'Income' | 'Expense' }))}>
+                    <option value="Expense">{t('upload.typeExpense')}</option>
+                    <option value="Income">{t('upload.typeIncome')}</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('transactions.category')}</label>
+                <select
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
+                  {categories.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={handleSaveModal}
+                disabled={saving || !form.date || !form.description.trim() || !form.category || !form.amount}
+                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {saving ? t('common.saving') : t('common.save')}
+              </button>
+              <button onClick={() => setModalMode(null)} className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

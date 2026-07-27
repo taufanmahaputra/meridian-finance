@@ -308,6 +308,15 @@ export function isIsoDate(d: string): boolean {
   return /^\d{4}-\d{2}-\d{2}/.test(d);
 }
 
+/** "2026-06-15" -> "Jun 2026" — the month-label format every MonthData
+ *  row is keyed by. Used to figure out which month a manually added or
+ *  re-dated transaction belongs to. */
+export function monthLabelFromDate(date: string): string {
+  if (!isIsoDate(date)) return date;
+  const [y, m] = date.split('-');
+  return `${MONTH_NAMES[Number(m) - 1]} ${y}`;
+}
+
 /** Best-effort month label for a transaction — the assigned import month
  *  when known, else derived from an ISO date, else the raw date string
  *  (which is itself already a month label for the no-itemized-data
@@ -315,10 +324,7 @@ export function isIsoDate(d: string): boolean {
  *  that groups or filters transactions by month. */
 export function effectiveTxMonth(tx: Transaction): string {
   if (tx.month) return tx.month;
-  if (isIsoDate(tx.date)) {
-    const [y, m] = tx.date.split('-');
-    return `${MONTH_NAMES[Number(m) - 1]} ${y}`;
-  }
+  if (isIsoDate(tx.date)) return monthLabelFromDate(tx.date);
   return tx.date;
 }
 
