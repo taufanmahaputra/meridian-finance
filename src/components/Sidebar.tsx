@@ -25,6 +25,9 @@ interface NavItem {
   // Optional custom active-state test — defaults to an exact pathname match.
   // Used so a parent item can stay highlighted on its drill-down sub-routes.
   match?: (path: string) => boolean;
+  // Sub-pages shown indented directly under this item — e.g. Transactions
+  // as the raw-ledger companion to Spending's analysis view.
+  children?: NavItem[];
 }
 interface NavSection {
   titleKey: string;
@@ -37,8 +40,10 @@ const olahAturSections: NavSection[] = [
     items: [
       { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutGrid },
       { href: '/monthly', labelKey: 'nav.monthly', icon: CalendarDays },
-      { href: '/transactions', labelKey: 'nav.transactions', icon: DollarSign },
-      { href: '/spending', labelKey: 'nav.spending', icon: PieChart },
+      {
+        href: '/spending', labelKey: 'nav.spending', icon: PieChart,
+        children: [{ href: '/transactions', labelKey: 'nav.transactions', icon: DollarSign }],
+      },
       // Budget & Audit owns the per-category drill-down (/categories/[name]),
       // so it stays highlighted there and the detail's back button returns here.
       { href: '/budget', labelKey: 'nav.budget', icon: CheckCircle, match: (p) => p === '/budget' || p.startsWith('/categories/') },
@@ -264,22 +269,46 @@ export function Sidebar() {
               {section.items.map((item) => {
                 const active = item.match ? item.match(pathname) : pathname === item.href;
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={close}
-                    title={collapsed ? t(item.labelKey) : undefined}
-                    className={cn(
-                      'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5',
-                      collapsed && 'md:justify-center',
-                      active
-                        ? 'bg-indigo-500/15 text-indigo-300 font-semibold'
-                        : 'text-white/50 hover:bg-white/5 hover:text-white'
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={close}
+                      title={collapsed ? t(item.labelKey) : undefined}
+                      className={cn(
+                        'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5',
+                        collapsed && 'md:justify-center',
+                        active
+                          ? 'bg-indigo-500/15 text-indigo-300 font-semibold'
+                          : 'text-white/50 hover:bg-white/5 hover:text-white'
+                      )}
+                    >
+                      <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+                      <span className={cn(collapsed && 'md:hidden')}>{t(item.labelKey)}</span>
+                    </Link>
+                    {item.children && !collapsed && (
+                      <div className="ml-[13px] pl-3.5 border-l border-white/10 mb-0.5">
+                        {item.children.map((child) => {
+                          const childActive = child.match ? child.match(pathname) : pathname === child.href;
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              onClick={close}
+                              className={cn(
+                                'flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors mb-0.5',
+                                childActive
+                                  ? 'bg-indigo-500/15 text-indigo-300 font-semibold'
+                                  : 'text-white/40 hover:bg-white/5 hover:text-white'
+                              )}
+                            >
+                              <child.icon className="w-[15px] h-[15px] flex-shrink-0" />
+                              <span>{t(child.labelKey)}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
                     )}
-                  >
-                    <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
-                    <span className={cn(collapsed && 'md:hidden')}>{t(item.labelKey)}</span>
-                  </Link>
+                  </div>
                 );
               })}
             </div>

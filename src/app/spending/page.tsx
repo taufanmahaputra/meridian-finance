@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Search, X } from 'lucide-react';
 import { useFinance } from '@/lib/FinanceContext';
 import { Topbar } from '@/components/Topbar';
@@ -126,9 +127,15 @@ export default function SpendingPage() {
       <Topbar title={t('spending.title')} />
       <div className="p-4 sm:p-7 max-w-[1440px]">
         {/* ── Filterable summary ──────────────────────────────────── */}
-        <div className="mb-4">
-          <h3 className="text-sm font-semibold">{t('transactions.summary')}</h3>
-          <p className="text-xs text-gray-400">{t('transactions.summarySubtitle')}</p>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-sm font-semibold">{t('transactions.summary')}</h3>
+            <p className="text-xs text-gray-400">{t('transactions.summarySubtitle')}</p>
+          </div>
+          <Link href="/transactions"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors flex-shrink-0">
+            {t('spending.viewRawTransactions')}
+          </Link>
         </div>
 
         <div className="flex flex-wrap gap-2 items-center bg-white border border-gray-200 rounded-xl p-3 mb-4">

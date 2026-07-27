@@ -305,6 +305,7 @@ const en: Dict = {
   'transactions.aggregateOnlyCta': 'Upload a statement →',
 
   'spending.title': 'Spending',
+  'spending.viewRawTransactions': 'View raw transactions →',
   'spending.empty.title': 'No spending data yet',
   'spending.empty.desc': 'Upload an e-statement or add a month to see your spending breakdown.',
   'spending.kpi.totalSpend': 'Total Spend This Month',
@@ -807,6 +808,7 @@ const id: Dict = {
   'transactions.aggregateOnlyCta': 'Unggah mutasi rekening →',
 
   'spending.title': 'Pengeluaran',
+  'spending.viewRawTransactions': 'Lihat transaksi mentah →',
   'spending.empty.title': 'Belum ada data pengeluaran',
   'spending.empty.desc': 'Unggah mutasi rekening atau tambahkan bulan untuk melihat rincian pengeluaran Anda.',
   'spending.kpi.totalSpend': 'Total Pengeluaran Bulan Ini',
